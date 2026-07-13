@@ -1,430 +1,757 @@
-# AI Document Intelligence Platform
+<div align="center">
 
-**Production-grade local RAG pipeline for SDS (Safety Data Sheet) document metadata extraction.**
+# 🧪 SDS Metadata Extraction System
 
-A complete, enterprise-architecture AI system that runs **100% locally** — powered by Ollama + Qwen3:8B + ChromaDB + LangChain + FastAPI + Streamlit.
+### AI-Powered Document Intelligence for Safety Data Sheets
 
-## Features
+<p>
 
-- ✅ **Local-first design** — No cloud APIs, no API keys, no internet dependency
-- ✅ **Complete RAG pipeline** — PDF → extract → clean → chunk → embed → retrieve → LLM → validate → store
-- ✅ **Clean Architecture** — Domain, Application, Infrastructure, Presentation layers with full SOLID compliance
-- ✅ **Production-ready** — Structured logging, exception handling, validation, Docker
-- ✅ **Modular & testable** — 100% dependency injection, abstract interfaces, comprehensive test suite
-- ✅ **Multi-document batch processing** — Upload one or many PDFs in a single request
-- ✅ **RESTful FastAPI backend** — Full API documentation at `/docs`
-- ✅ **Streamlit web interface** — Beautiful, responsive UI for document upload and result viewing
+<img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+<img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white"/>
+<img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white"/>
+<img src="https://img.shields.io/badge/Ollama-Local%20LLM-black?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/Qwen3-8B-blue?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/ChromaDB-Vector%20Database-purple?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite"/>
+<img src="https://img.shields.io/badge/License-MIT-success?style=for-the-badge"/>
 
-## What It Does
+</p>
 
-Upload an SDS PDF document. The system automatically extracts:
+**Local AI • Retrieval-Augmented Generation • Clean Architecture • 100% Offline**
 
-1. **Product Name** — The commercial or trade name of the chemical product
-2. **Language** — The language the document is written in (English, Portuguese, Spanish, German, French, etc.)
-3. **Jurisdiction** — The regulatory framework the SDS complies with:
-   - United States (OSHA / HazCom 2012)
-   - Canada (WHMIS 2015)
-   - European Union (REACH / CLP)
-   - United Kingdom (UK REACH)
-   - Brazil (ABNT NBR 14725)
-   - Mexico (NOM-018-STPS)
-   - Australia, New Zealand, Japan, China, South Korea, India, Singapore
-   - Or any other global SDS standard
+</div>
 
-**Language and Jurisdiction are independent.** For example:
-- An English document following Brazilian regulations
-- A German document following EU regulations
-- A Portuguese document following Portugal/Brazil regulations
+---
 
-## Tech Stack
+# Overview
 
-- **Python 3.12+**
-- **FastAPI 0.139** — Type-safe, async web framework
-- **Streamlit 1.45** — Web UI framework
-- **Ollama** — Local LLM runtime
-- **Qwen3:8B** — Default open-source LLM (can swap for Llama2, Mistral, etc.)
-- **LangChain 0.3** — RAG orchestration
-- **ChromaDB 1.0** — Vector database
-- **nomic-embed-text:latest** — Embedding model
-- **SQLite** — Document metadata store
-- **PyMuPDF** — PDF text extraction
-- **Pydantic v2** — Data validation
-- **pytest** — Testing framework
-- **Docker** — Containerisation
+SDS Metadata Extraction System is an AI-powered document intelligence application that automatically extracts structured metadata from **Safety Data Sheet (SDS)** PDF documents.
 
-## Quick Start
+The application uses a Retrieval-Augmented Generation (RAG) pipeline running completely on your local machine. Instead of processing an entire document with a Large Language Model, it retrieves only the most relevant sections before asking the model to extract metadata. This approach improves accuracy, reduces hallucinations, and keeps inference efficient.
 
-### Prerequisites
+The project is built using **FastAPI**, **Streamlit**, **Ollama**, **ChromaDB**, and **SQLite**, following **Clean Architecture** to keep the code modular, maintainable, and easy to extend.
 
-- **Python 3.12+**
-- **Ollama** installed locally (download from https://ollama.ai)
-- **Git**
+No cloud services.
 
-### 1. Clone the Repository
+No API keys.
 
-```bash
-git clone <repository-url>
-cd SDS-Metadata-Extractor
+No internet connection is required after downloading the models.
+
+---
+
+# Features
+
+- Upload one or multiple SDS PDF documents
+- Automatic PDF validation
+- Text extraction using PyMuPDF
+- Text cleaning and normalization
+- Semantic chunking
+- Local embedding generation
+- ChromaDB vector search
+- Retrieval-Augmented Generation (RAG)
+- Local inference using Ollama
+- SQLite metadata storage
+- Processing history
+- Structured logging
+- Clean Architecture
+- REST API
+- Streamlit interface
+
+---
+
+# Extracted Metadata
+
+The application extracts exactly four metadata fields.
+
+| Field | Description |
+|-------|-------------|
+| 🌐 Language | Detects the language used in the SDS document. |
+| 🌍 Jurisdiction | Identifies the applicable regulations, primarily from Section 15. |
+| 🏢 Company Name | Extracts the manufacturer or supplier. |
+| 🧪 Product Name | Extracts the product name, primarily from Section 1. |
+
+If a value cannot be determined confidently, the field is returned empty instead of generating inaccurate information.
+
+---
+
+# What This Project Is
+
+- AI-powered document intelligence application
+- Retrieval-Augmented Generation (RAG)
+- Metadata extraction system
+- Local AI application
+- Production-ready backend
+- Modern Python project
+
+---
+
+# What This Project Is Not
+
+- Chatbot
+- PDF summarizer
+- Question-answering system
+- General document search engine
+
+The application has one responsibility:
+
+**Extract structured metadata from Safety Data Sheets.**
+
+---
+
+# Technology Stack
+
+| Category | Technology |
+|----------|------------|
+| Language | Python 3.12+ |
+| Backend | FastAPI |
+| Frontend | Streamlit |
+| LLM Runtime | Ollama |
+| LLM | Qwen3:8B |
+| Embeddings | nomic-embed-text |
+| Vector Database | ChromaDB |
+| Database | SQLite |
+| PDF Processing | PyMuPDF |
+| Validation | Pydantic V2 |
+| Testing | pytest |
+| Configuration | python-dotenv |
+
+---
+
+# Architecture
+
+The project follows **Clean Architecture**.
+
+```
+Presentation
+      │
+      ▼
+Application
+      │
+      ▼
+Domain
+      │
+      ▼
+Infrastructure
 ```
 
-### 2. Create & Activate Virtual Environment
+Each layer has a single responsibility.
+
+Business logic is completely independent of frameworks and external services.
+
+---
+
+# Project Workflow
+
+```
+Upload PDF
+      │
+      ▼
+Extract Text
+      │
+      ▼
+Clean Text
+      │
+      ▼
+Semantic Chunking
+      │
+      ▼
+Generate Embeddings
+      │
+      ▼
+Store in ChromaDB
+      │
+      ▼
+Retrieve Relevant Chunks
+      │
+      ▼
+Build Prompt
+      │
+      ▼
+Qwen3 (Ollama)
+      │
+      ▼
+Validate Metadata
+      │
+      ▼
+Store in SQLite
+      │
+      ▼
+Return Result
+```
+
+---
+
+# Screenshots
+
+> Screenshots will be added after the UI is finalized.
+
+| Home | Extraction | History |
+|------|------------|----------|
+| Coming Soon | Coming Soon | Coming Soon |
+
+---
+
+# Installation
+
+## Clone Repository
 
 ```bash
+git clone https://github.com/ps-abhijit-kumar/SDS-Metadata.git
+
+cd SDS-Metadata
+```
+
+## Create Virtual Environment
+
+### Windows
+
+```powershell
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+.venv\Scripts\activate
 ```
 
-### 3. Install Dependencies
+### Linux / macOS
+
+```bash
+python3 -m venv .venv
+
+source .venv/bin/activate
+```
+
+## Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Download Required Ollama Models
+## Download Models
 
-In a separate terminal, start Ollama and pull the required models:
+```bash
+ollama pull qwen3:8b
+
+ollama pull nomic-embed-text
+```
+
+## Configure Environment
+
+```bash
+copy .env.example .env
+```
+
+Update the required settings if necessary.
+
+---
+
+# Running the Application
+
+### Terminal 1
 
 ```bash
 ollama serve
-
-# In another terminal:
-ollama pull qwen3:8b
-ollama pull nomic-embed-text:latest
 ```
 
-Verify the models are available:
+### Terminal 2
 
 ```bash
-ollama list
+uvicorn app.main:app --reload
 ```
 
-### 5. Configure Environment
+Backend
 
-Copy the example config and adjust if needed:
-
-```bash
-cp .env.example .env
+```
+http://127.0.0.1:8000
 ```
 
-The defaults assume Ollama is running at `http://127.0.0.1:11434` and the database is at `./data/platform.db`. Adjust if your setup differs.
+Swagger
 
-### 6. Initialize Database
-
-```bash
-python scripts/init_db.py
+```
+http://127.0.0.1:8000/docs
 ```
 
-### 7. Start the FastAPI Backend
-
-```bash
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-Open http://127.0.0.1:8000/docs to see the API documentation.
-
-### 8. Start the Streamlit Frontend (in a new terminal)
+### Terminal 3
 
 ```bash
 streamlit run frontend/app.py
 ```
 
-Open http://127.0.0.1:8501 in your browser.
-
-### 9. Upload & Extract
-
-1. Go to the **Extract** tab
-2. Upload one or more SDS PDF files
-3. Click "Extract Metadata"
-4. Wait for the RAG pipeline to complete (typically 1–3 minutes per document depending on LLM inference speed)
-5. View results — product name, language, jurisdiction
-
-## Architecture
+Frontend
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Presentation Layer                         │
-│  ┌──────────────────┐                   ┌──────────────────────┐│
-│  │  Streamlit UI    │                   │   FastAPI Backend    ││
-│  │  (frontend/      │◄──────HTTP───────►│   (app/presentation) ││
-│  │   app.py)        │                   │                      ││
-│  └──────────────────┘                   └──────────────────────┘│
-└────────────────────────────────┬─────────────────────────────────┘
-                                 │
-                    ┌────────────▼─────────────┐
-                    │  Dependency Container     │
-                    │  (DI + Lifespan)          │
-                    └────────────┬──────────────┘
-                                 │
-        ┌────────────────────────┼────────────────────────┐
-        │                        │                        │
-┌───────▼────────────┐  ┌────────▼──────────┐  ┌─────────▼──────┐
-│Application Layer   │  │Infrastructure     │  │Domain Layer    │
-│                    │  │                    │  │                │
-│• Use Cases         │  │• SQLite Database   │  │• Entities      │
-│• Services          │  │• Ollama LLM        │  │• Value Objects │
-│• DTOs              │  │• Embeddings        │  │• Exceptions    │
-│• Interfaces        │  │• Vector Store      │  │• Repositories  │
-│• Validators        │  │• PDF Reader        │  │• Enums         │
-│• Prompt Builder    │  │• Config & Logging  │  │                │
-└────────────────────┘  └────────────────────┘  └────────────────┘
+http://127.0.0.1:8501
 ```
+# Using the Application
 
-### Pipeline Flow
+1. Open the Streamlit application.
 
 ```
-Upload PDF
-    ↓
-Validate + Save file
-    ↓
-Extract raw text (PyMuPDF)
-    ↓
-Clean & normalise
-    ↓
-Semantic chunking (detect SDS sections)
-    ↓
-Generate embeddings (nomic-embed-text)
-    ↓
-Store in ChromaDB
-    ↓
-Multi-query retrieval (8 different retrieval queries)
-    ↓
-Build structured prompt
-    ↓
-Call Ollama LLM (Qwen3:8B)
-    ↓
-Parse & validate LLM response
-    ↓
-Persist to SQLite
-    ↓
-Return results
+http://127.0.0.1:8501
 ```
 
-## API Endpoints
+2. Upload one or more SDS PDF documents.
 
-### POST `/api/v1/extract`
-Upload one or more SDS PDF files and extract metadata.
+3. Click **Extract Metadata**.
 
-**Request:** Multipart file upload
-**Response:**
-```json
-{
-  "total": 2,
-  "results": [
-    {
-      "document_id": "uuid",
-      "filename": "sds_sample.pdf",
-      "status": "completed",
-      "product_name": "Aceton 99%",
-      "language": "English",
-      "jurisdiction": "United States (OSHA / HazCom 2012)",
-      "created_at": "2024-01-15T10:30:00Z"
-    },
-    {
-      "document_id": "uuid",
-      "filename": "invalid_doc.txt",
-      "status": "failed",
-      "error_message": "File type '.txt' is not supported. Only PDF files are accepted."
-    }
-  ]
-}
+4. The application automatically performs:
+
+- PDF validation
+- Text extraction
+- Text cleaning
+- Semantic chunking
+- Embedding generation
+- Vector storage
+- Semantic retrieval
+- Prompt generation
+- LLM inference
+- Metadata validation
+- SQLite storage
+
+5. View the extracted metadata on the screen.
+
+Example:
+
+```text
+language: English
+
+jurisdiction: European Union (REACH)
+
+company name: Thermo Fisher Scientific
+
+product name: Optima LC/MS Acetic Acid
 ```
-
-### GET `/api/v1/documents`
-List all processed documents.
-
-### GET `/api/v1/documents/{document_id}`
-Get a single document's extraction result.
-
-### DELETE `/api/v1/documents/{document_id}`
-Delete a document record and its associated vector store entries.
-
-### GET `/health`
-Application health check.
-
-## Testing
-
-### Run All Tests
-
-```bash
-pytest tests/ -v
-```
-
-### Run Unit Tests Only
-
-```bash
-pytest tests/unit/ -v
-```
-
-### Run Integration Tests Only
-
-```bash
-pytest tests/integration/ -v
-```
-
-### Run with Coverage
-
-```bash
-pytest tests/ --cov=app --cov-report=html
-```
-
-## Docker Deployment
-
-### Build & Run with Docker Compose
-
-```bash
-docker-compose up --build
-```
-
-This starts three services:
-- **ollama** — Local LLM runtime on port 11434
-- **api** — FastAPI backend on port 8000
-- **frontend** — Streamlit on port 8501
-
-Access:
-- Streamlit UI: http://localhost:8501
-- FastAPI docs: http://localhost:8000/docs
-- Ollama API: http://localhost:11434
-
-## Configuration
-
-All configuration is environment-based. See `.env.example` for all available options:
-
-```env
-# Application
-APP_ENV=development
-APP_HOST=127.0.0.1
-APP_PORT=8000
-DEBUG=false
-
-# File upload
-UPLOAD_DIR=./data/uploads
-UPLOAD_MAX_SIZE_MB=50
-
-# Database
-DATABASE_URL=sqlite:///./data/platform.db
-
-# Vector store
-CHROMA_DB_DIR=./data/chroma_db
-CHROMA_COLLECTION_NAME=documents
-
-# Ollama
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-OLLAMA_LLM_MODEL=qwen3:8b
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text:latest
-OLLAMA_TIMEOUT_SECONDS=180
-
-# RAG tuning
-CHUNK_SIZE=600
-CHUNK_OVERLAP=100
-RETRIEVAL_K=8
-EMBEDDING_BATCH_SIZE=32
-
-# Logging
-LOG_LEVEL=INFO
-LOG_DIR=./logs
-```
-
-## Project Structure
-
-```
-app/
-├── domain/                      # Pure business logic, no framework dependencies
-│   ├── entities/
-│   ├── value_objects/
-│   ├── repositories/            # Abstract interfaces
-│   ├── exceptions/
-│   └── enums/
-├── application/                 # Use cases, services, DTOs
-│   ├── use_cases/
-│   ├── services/
-│   └── dto/
-├── infrastructure/              # Implementation of interfaces
-│   ├── database/
-│   ├── repositories/
-│   ├── llm/
-│   ├── embeddings/
-│   ├── vectorstore/
-│   ├── pdf/
-│   ├── logging/
-│   └── configuration/
-├── presentation/                # FastAPI routers, schemas, middleware
-│   ├── routers/
-│   ├── schemas/
-│   ├── dependencies/            # DI container
-│   └── middleware/
-└── main.py
-
-frontend/
-└── app.py                        # Streamlit UI
-
-tests/
-├── unit/                         # Unit tests for services, validators, etc.
-└── integration/                  # Integration tests for database, repositories
-
-scripts/
-└── init_db.py                    # Database initialization
-
-docker-compose.yml               # Multi-container orchestration
-Dockerfile                        # FastAPI container definition
-requirements.txt                  # Python dependencies
-pyproject.toml                    # Build config & pytest settings
-.env.example                      # Configuration template
-README.md                         # This file
-```
-
-## Performance Notes
-
-- **PDF extraction**: ~1–2 seconds per page using PyMuPDF
-- **Embedding generation**: ~10–30 seconds depending on chunk count (batched, uses Ollama)
-- **LLM inference**: ~30–90 seconds depending on model and system (Qwen3:8B)
-- **Total per document**: ~2–3 minutes on average hardware
-
-Optimizations included:
-- Batch embedding generation (32 texts per batch by default)
-- Multi-query retrieval for better recall
-- Token limit on LLM output (512 tokens max for speed)
-- Temperature = 0 (deterministic extraction)
-- ChromaDB similarity search with deduplication
-
-## Troubleshooting
-
-### "Cannot connect to Ollama"
-- Ensure Ollama is running: `ollama serve`
-- Verify models are available: `ollama list`
-- Check `OLLAMA_BASE_URL` in `.env` points to the correct Ollama host
-
-### "No such file or directory: ./data/platform.db"
-- Run `python scripts/init_db.py` to create the database
-
-### "PDF extraction failed: Cannot open PDF"
-- Ensure the uploaded file is a valid, non-corrupted PDF
-- Try opening the file in a PDF reader to verify
-
-### "LLM response did not contain any expected metadata fields"
-- The LLM output format was unexpected
-- Try with a different document or adjust the prompt in `app/application/services/prompt_builder.py`
-
-### "No relevant chunks were retrieved"
-- The semantic chunking or retrieval failed
-- Try adjusting `RETRIEVAL_K` or `CHUNK_SIZE` in `.env`
-
-## Contributing
-
-This is a production-ready reference implementation. Feel free to:
-- Add support for additional document types (MSDS, GHS documents, etc.)
-- Implement different LLM backends (Llama2, Mistral, etc.)
-- Add advanced retrieval strategies (re-ranking, query expansion, etc.)
-- Extend metadata extraction to capture additional fields
-- Implement batch processing with async workers
-
-## License
-
-This project is provided as-is for educational and commercial use.
-
-## Support
-
-For issues, feature requests, or questions, please refer to the project documentation or open an issue.
 
 ---
 
-**Built for enterprise. Runs locally. Zero external dependencies.**
+# REST API
+
+Base URL
+
+```
+/api/v1
+```
+
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/extract` | Upload SDS PDFs and extract metadata |
+| GET | `/documents` | List processed documents |
+| GET | `/documents/{id}` | Get metadata for a document |
+| DELETE | `/documents/{id}` | Delete a document |
+| GET | `/health` | Backend health check |
+
+Swagger Documentation
+
+```
+http://127.0.0.1:8000/docs
+```
+
+---
+
+# Project Structure
+
+```
+SDS-Metadata/
+
+├── app/
+│   ├── presentation/
+│   ├── application/
+│   ├── domain/
+│   ├── infrastructure/
+│   └── shared/
+│
+├── frontend/
+├── tests/
+├── docs/
+├── scripts/
+├── data/
+│
+├── requirements.txt
+├── pyproject.toml
+├── README.md
+├── .env.example
+└── .gitignore
+```
+
+---
+
+# RAG Pipeline
+
+The application follows a Retrieval-Augmented Generation workflow.
+
+```
+SDS PDF
+    │
+    ▼
+Extract Text
+    │
+    ▼
+Clean Text
+    │
+    ▼
+Semantic Chunking
+    │
+    ▼
+Generate Embeddings
+    │
+    ▼
+Store Vectors
+    │
+    ▼
+Retrieve Relevant Chunks
+    │
+    ▼
+Build Prompt
+    │
+    ▼
+Qwen3 (Ollama)
+    │
+    ▼
+Validate Response
+    │
+    ▼
+Store Metadata
+```
+
+Only the retrieved context is sent to the language model.
+
+The complete PDF is never sent to the LLM.
+
+---
+
+# Design Principles
+
+The project follows modern software engineering practices.
+
+- Clean Architecture
+- SOLID Principles
+- Dependency Injection
+- Repository Pattern
+- Factory Pattern
+- Strategy Pattern
+- Adapter Pattern
+- DTO Pattern
+- Use Case Pattern
+- DRY
+- KISS
+- YAGNI
+
+These principles make the project modular, testable, and easy to extend.
+
+---
+
+# Data Storage
+
+## SQLite
+
+Stores:
+
+- Upload history
+- Processing history
+- Extracted metadata
+- Application settings
+- Statistics
+
+---
+
+## ChromaDB
+
+Stores:
+
+- Embeddings
+- Semantic chunks
+- Chunk metadata
+- Vector index
+
+---
+
+# Configuration
+
+All configuration is managed through `.env`.
+
+Examples include:
+
+- Upload directory
+- Database path
+- ChromaDB path
+- Ollama URL
+- LLM model
+- Embedding model
+- Chunk size
+- Retrieval settings
+- Logging level
+
+No configuration values are hardcoded.
+
+---
+
+# Logging
+
+The application uses structured logging throughout the processing pipeline.
+
+Logs include:
+
+- Application logs
+- Error logs
+- Audit logs
+- Console logs
+
+Each processing stage records useful information for debugging and monitoring.
+
+---
+
+# Error Handling
+
+The project defines custom exceptions for different components.
+
+Examples include:
+
+- PDF Exception
+- Validation Exception
+- Embedding Exception
+- Vector Store Exception
+- LLM Exception
+- Configuration Exception
+
+This provides meaningful error messages while keeping the business logic clean.
+
+---
+
+# Testing
+
+Run all tests
+
+```bash
+pytest
+```
+
+Run unit tests
+
+```bash
+pytest tests/unit
+```
+
+Run integration tests
+
+```bash
+pytest tests/integration
+```
+
+Run with coverage
+
+```bash
+pytest --cov=app
+```
+
+---
+
+# Future Improvements
+
+Planned enhancements include:
+
+- OCR support for scanned PDFs
+- Hybrid retrieval
+- Better multilingual language detection
+- Confidence scores
+- Batch processing improvements
+- CSV and Excel export
+- Authentication
+- Dashboard analytics
+- Background processing
+- Additional LLM providers
+
+The architecture allows these features to be added without changing the core business logic.
+# Contributing
+
+Contributions are welcome.
+
+If you would like to improve the project:
+
+1. Fork the repository.
+2. Create a new branch.
+
+```bash
+git checkout -b feature/your-feature
+```
+
+3. Commit your changes.
+
+```bash
+git commit -m "Add your feature"
+```
+
+4. Push the branch.
+
+```bash
+git push origin feature/your-feature
+```
+
+5. Open a Pull Request.
+
+Before submitting a Pull Request, please ensure that:
+
+- The project builds successfully.
+- Existing tests pass.
+- New code follows the project architecture.
+- Documentation is updated if required.
+- Business logic remains independent of infrastructure.
+
+---
+
+# Roadmap
+
+## Version 1.1
+
+- Improve metadata extraction accuracy
+- Optimize semantic retrieval
+- Reduce LLM response time
+- Improve multilingual language detection
+- Better jurisdiction extraction
+
+---
+
+## Version 1.2
+
+- OCR support for scanned SDS PDFs
+- Batch processing optimization
+- CSV export
+- Excel export
+- Confidence score for extracted metadata
+
+---
+
+## Version 2.0
+
+- Support additional document formats
+- Hybrid retrieval (semantic + keyword)
+- Multiple embedding models
+- Multiple LLM providers
+- Processing dashboard
+- User authentication
+
+---
+
+# Performance
+
+The overall processing time depends on:
+
+- PDF size
+- Number of pages
+- Hardware specifications
+- Selected LLM model
+
+Typical processing flow:
+
+| Stage | Typical Time |
+|--------|--------------|
+| PDF Extraction | 1–3 sec |
+| Text Cleaning | <1 sec |
+| Chunking | 1–2 sec |
+| Embedding Generation | 5–20 sec |
+| Vector Retrieval | <1 sec |
+| LLM Inference | Hardware dependent |
+| SQLite Storage | <1 sec |
+
+---
+
+# Supported Technologies
+
+## AI
+
+- Ollama
+- Qwen3:8B
+- nomic-embed-text
+
+## Backend
+
+- FastAPI
+- Pydantic
+- Python
+
+## Frontend
+
+- Streamlit
+
+## Storage
+
+- SQLite
+- ChromaDB
+
+## Processing
+
+- PyMuPDF
+
+## Testing
+
+- pytest
+
+---
+
+# Why This Project?
+
+This project was built to demonstrate practical AI engineering using modern software development practices.
+
+It combines:
+
+- Retrieval-Augmented Generation (RAG)
+- Local Large Language Models
+- Semantic Search
+- Vector Databases
+- Clean Architecture
+- FastAPI
+- Streamlit
+
+The goal is to build an AI application that is reliable, modular, maintainable, and suitable for real-world document processing workflows.
+
+---
+
+# Repository
+
+```
+SDS-Metadata
+│
+├── app/
+├── frontend/
+├── tests/
+├── docs/
+├── scripts/
+├── data/
+│
+├── README.md
+├── requirements.txt
+├── pyproject.toml
+├── .env.example
+└── .gitignore
+```
+
+---
+
+# License
+
+This project is licensed under the **MIT License**.
+
+See the `LICENSE` file for details.
+
+---
+
+# Author
+
+**Abhijit Kumar**
+
+GitHub
+
+https://github.com/ps-abhijit-kumar
+
+---
+
+<div align="center">
+
+## ⭐ If you found this project useful, consider giving it a star.
+
+It helps others discover the project and supports future improvements.
+
+---
+
+**SDS Metadata Extraction System**
+
+*Built with Python, FastAPI, Streamlit, Ollama, ChromaDB, SQLite, and Clean Architecture.*
+
+</div>
