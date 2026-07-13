@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  # Local Ollama runtime — runs the qwen3:8b and nomic-embed-text models
+  ollama:
+    image: ollama/ollama:latest
+    container_name: sds-platform-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - platform
+
+  # FastAPI backend
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sds-platform-api
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=sqlite:////app/data/platform.db
+      - CHROMA_DB_DIR=/app/data/chroma_db
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - platform
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Streamlit frontend
+  frontend:
+    image: python:3.12-slim
+    container_name: sds-platform-frontend
+    working_dir: /app
+    command: bash -c "pip install streamlit httpx && streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0"
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+      - STREAMLIT_SERVER_HEADLESS=true
+    volumes:
+      - .:/app
+    depends_on:
+      - api
+    networks:
+      - platform
+
+volumes:
+  ollama_data:
+
+networks:
+  platform:
+    driver: bridge

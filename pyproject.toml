@@ -1,0 +1,35 @@
+[project]
+name = "ai-document-intelligence-platform"
+version = "1.0.0"
+description = "Production-grade AI Document Intelligence Platform — SDS Metadata Extraction with local RAG pipeline"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[project.dependencies]
+fastapi = "==0.115.9"
+uvicorn = {extras = ["standard"], version = "==0.32.1"}
+httpx = "==0.28.1"
+streamlit = "==1.45.1"
+langchain = "==0.3.25"
+langchain-core = "==0.3.60"
+langchain-ollama = "==0.3.3"
+langchain-chroma = "==1.1.0"
+langchain-text-splitters = "==0.3.8"
+chromadb = "==1.5.9"
+pymupdf = "==1.25.5"
+python-dotenv = "==1.1.0"
+pydantic = "==2.11.4"
+pydantic-settings = "==2.9.1"
+pytest = "==8.3.5"
+pytest-asyncio = "==0.26.0"
+
+[build-system]
+requires = ["setuptools>=65.5.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"

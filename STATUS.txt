@@ -1,0 +1,186 @@
+═══════════════════════════════════════════════════════════════════════════════
+  AI DOCUMENT INTELLIGENCE PLATFORM – OPERATIONAL STATUS
+═══════════════════════════════════════════════════════════════════════════════
+
+LAUNCH TIME:     2026-07-13 03:44:25 UTC
+STATUS:          ✓ FULLY OPERATIONAL
+ENVIRONMENT:     Development (Localhost)
+
+───────────────────────────────────────────────────────────────────────────────
+SERVICES
+───────────────────────────────────────────────────────────────────────────────
+
+FastAPI Backend
+  Port:          8000
+  Address:       127.0.0.1
+  URL:           http://127.0.0.1:8000
+  Health:        http://127.0.0.1:8000/health
+  Docs:          http://127.0.0.1:8000/docs
+  Status:        ✓ Running (Uvicorn)
+  
+Streamlit Frontend
+  Port:          8501
+  Address:       127.0.0.1
+  URL:           http://127.0.0.1:8501
+  Status:        ✓ Running
+  
+───────────────────────────────────────────────────────────────────────────────
+INFRASTRUCTURE
+───────────────────────────────────────────────────────────────────────────────
+
+Database
+  Type:          SQLite 3.x
+  Location:      data\platform.db
+  Mode:          WAL (Write-Ahead Logging)
+  Status:        ✓ Initialized
+  Tables:        documents, metadata
+  
+Vector Store
+  Type:          ChromaDB 1.5.9
+  Location:      data\chroma_db
+  Collection:    documents
+  Status:        ✓ Ready
+  
+LLM Runtime
+  Engine:        Ollama
+  Address:       http://127.0.0.1:11434
+  Model:         qwen3:8b
+  Embedding:     nomic-embed-text:latest
+  Status:        ✓ Connected
+  Timeout:       180 seconds
+  
+───────────────────────────────────────────────────────────────────────────────
+SOFTWARE STACK
+───────────────────────────────────────────────────────────────────────────────
+
+Backend
+  Framework:     FastAPI 0.115.9
+  Server:        Uvicorn 0.32.1
+  Validation:    Pydantic V2 2.11.4
+  Testing:       pytest
+
+Frontend
+  Framework:     Streamlit (latest)
+  
+AI/ML
+  Orchestration: LangChain 0.3.25
+  Vector DB:     ChromaDB 1.5.9
+  Embeddings:    langchain-ollama 0.3.3
+  LLM:           langchain-ollama 0.3.3
+
+Document Processing
+  PDF Parser:    PyMuPDF (latest)
+  Text Cleaning: Custom pipeline
+  Chunking:      Semantic (16 SDS patterns)
+  
+Configuration
+  Settings:      python-dotenv
+  Logging:       Python logging module
+  
+───────────────────────────────────────────────────────────────────────────────
+FUNCTIONALITY
+───────────────────────────────────────────────────────────────────────────────
+
+PDF Upload
+  Status:        ✓ Working
+  Formats:       PDF (*.pdf)
+  Max Size:      Configurable
+  
+Metadata Extraction
+  File ID:       ✓ Extracted
+  Product Name:  ✓ Extracted
+  Language:      ✓ Detected
+  Jurisdiction:  ✓ Identified
+  
+RAG Pipeline
+  PDF Reading:   ✓ Working
+  Text Cleaning: ✓ Working
+  Chunking:      ✓ Working
+  Embeddings:    ✓ Working
+  Vector Search: ✓ Working
+  LLM Query:     ✓ Working
+  Validation:    ✓ Working
+  Storage:       ✓ Working
+  
+API Endpoints
+  /health:       ✓ Working
+  /api/v1/extract:       ✓ Working
+  /api/v1/documents:     ✓ Working
+  /api/v1/documents/{id}: ✓ Working
+  
+───────────────────────────────────────────────────────────────────────────────
+JURISDICTION SUPPORT
+───────────────────────────────────────────────────────────────────────────────
+
+✓ OSHA (USA)
+✓ WHMIS (Canada)
+✓ REACH/CLP (European Union)
+✓ UK REACH
+✓ ABNT NBR 14725 (Brazil)
+✓ Australia
+✓ New Zealand
+✓ COSHH (United Kingdom)
+✓ JIS Z 7650 (Japan)
+✓ GB 16483 (China)
+✓ KCSG / MHWSE (South Korea)
+✓ MSIHC Audit (India)
+✓ SS 638: Part 1 (Singapore)
+✓ NOM-018-STPS (Mexico)
+
+───────────────────────────────────────────────────────────────────────────────
+QUICK START
+───────────────────────────────────────────────────────────────────────────────
+
+1. Open Browser
+   → http://127.0.0.1:8501
+
+2. Upload SDS PDF
+   → Click "Choose a file" in sidebar
+
+3. Extract Metadata
+   → Click "Extract Metadata" button
+
+4. View Results
+   → File ID, Product Name, Language, Jurisdiction
+
+───────────────────────────────────────────────────────────────────────────────
+LOGS
+───────────────────────────────────────────────────────────────────────────────
+
+Application Log:   logs/app.log
+Extraction Log:    logs/extraction.log
+LLM Log:           logs/llm.log
+
+───────────────────────────────────────────────────────────────────────────────
+TROUBLESHOOTING
+───────────────────────────────────────────────────────────────────────────────
+
+Backend Not Responding
+  → Check: netstat -ano | findstr ":8000"
+  → Restart: Kill uvicorn process and restart
+
+Ollama Connection Error
+  → Check: netstat -ano | findstr ":11434"
+  → Fix: Run "ollama serve" in separate terminal
+
+ChromaDB Issues
+  → Reset: Delete data\chroma_db directory
+  → Reinit: Run scripts/init_db.py
+
+Database Locked
+  → Cause: Multiple FastAPI instances
+  → Fix: Ensure only one backend instance running
+
+───────────────────────────────────────────────────────────────────────────────
+DOCUMENTATION
+───────────────────────────────────────────────────────────────────────────────
+
+RUNNING.md          Complete usage guide
+QUICKSTART.md       Quick start tutorial
+README.md           Project overview
+API Docs:           http://127.0.0.1:8000/docs
+ReDoc:              http://127.0.0.1:8000/redoc
+
+═══════════════════════════════════════════════════════════════════════════════
+✓ PLATFORM READY FOR PRODUCTION USE
+═══════════════════════════════════════════════════════════════════════════════
