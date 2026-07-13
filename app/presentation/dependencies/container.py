@@ -12,6 +12,7 @@ and allows clean teardown.
 
 from __future__ import annotations
 
+from app.application.services.async_extraction_service import AsyncExtractionService
 from app.application.services.chunking_service import ChunkingService
 from app.application.services.metadata_validator import MetadataValidator
 from app.application.services.prompt_builder import build_extraction_prompt  # noqa: F401 — re-exported
@@ -40,6 +41,7 @@ _chunking_service: ChunkingService | None = None
 _text_cleaner: TextCleaner | None = None
 _metadata_validator: MetadataValidator | None = None
 _extract_use_case: ExtractMetadataUseCase | None = None
+_async_extraction_service: AsyncExtractionService | None = None
 
 
 def initialise() -> None:
@@ -52,6 +54,7 @@ def initialise() -> None:
     global _settings, _database, _document_repository, _document_reader
     global _embedding_client, _llm_client, _vector_store
     global _chunking_service, _text_cleaner, _metadata_validator, _extract_use_case
+    global _async_extraction_service
 
     _settings = get_settings()
 
@@ -82,6 +85,13 @@ def initialise() -> None:
         settings=_settings,
         retrieval_k=_settings.retrieval_k,
     )
+    
+    # Async extraction service for parallel processing
+    _async_extraction_service = AsyncExtractionService(
+        use_case=_extract_use_case,
+        settings=_settings,
+        max_concurrent=2,
+    )
 
 
 # ── FastAPI Depends provider functions ────────────────────────────────────────
@@ -94,3 +104,8 @@ def get_extract_use_case() -> ExtractMetadataUseCase:
 def get_document_repository() -> DocumentRepository:
     assert _document_repository is not None, "Container not initialised"
     return _document_repository
+
+
+def get_async_extraction_service() -> AsyncExtractionService:
+    assert _async_extraction_service is not None, "Container not initialised"
+    return _async_extraction_service

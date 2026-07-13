@@ -117,8 +117,12 @@ class ExtractMetadataUseCase:
                 extracted = self._reader.read(file_path)
             if debug_ctx:
                 debug_ctx.add_stage_timing("PDF extraction", timer.duration_ms)
-            if self._settings.log_stages:
-                logger.info("PDF extraction took %.1f ms", timer.duration_ms)
+            logger.info(
+                "✓ PDF extraction completed | time=%.1f ms | pages=%d | chars=%d",
+                timer.duration_ms,
+                extracted.num_pages if hasattr(extracted, 'num_pages') else 0,
+                len(extracted.full_text) if extracted else 0,
+            )
 
             # ── Stage 3: Text cleaning ────────────────────────────────────────
             with StageTimer("Text cleaning") as timer:
@@ -126,8 +130,12 @@ class ExtractMetadataUseCase:
                 clean_text = self._cleaner.clean(extracted.full_text)
             if debug_ctx:
                 debug_ctx.add_stage_timing("Text cleaning", timer.duration_ms)
-            if self._settings.log_stages:
-                logger.info("Text cleaning took %.1f ms", timer.duration_ms)
+            logger.info(
+                "✓ Text cleaning completed | time=%.1f ms | chars_before=%d | chars_after=%d",
+                timer.duration_ms,
+                len(extracted.full_text) if extracted else 0,
+                len(clean_text),
+            )
 
             # ── Stage 4: Semantic chunking ────────────────────────────────────
             with StageTimer("Semantic chunking") as timer:
@@ -135,8 +143,11 @@ class ExtractMetadataUseCase:
                 chunks = self._chunker.chunk(clean_text, document_id)
             if debug_ctx:
                 debug_ctx.add_stage_timing("Semantic chunking", timer.duration_ms)
-            if self._settings.log_stages:
-                logger.info("Semantic chunking took %.1f ms (%d chunks)", timer.duration_ms, len(chunks))
+            logger.info(
+                "✓ Semantic chunking completed | time=%.1f ms | chunks=%d",
+                timer.duration_ms,
+                len(chunks),
+            )
 
             if not chunks:
                 raise ApplicationException(
@@ -154,8 +165,11 @@ class ExtractMetadataUseCase:
                 )
             if debug_ctx:
                 debug_ctx.add_stage_timing("Embedding & storage", timer.duration_ms)
-            if self._settings.log_stages:
-                logger.info("Embedding & storage took %.1f ms", timer.duration_ms)
+            logger.info(
+                "✓ Embedding & storage completed | time=%.1f ms | chunks_stored=%d",
+                timer.duration_ms,
+                len(chunks),
+            )
 
             # ── Stage 6: Semantic retrieval ───────────────────────────────────
             with StageTimer("Semantic retrieval") as timer:
@@ -169,8 +183,11 @@ class ExtractMetadataUseCase:
                 debug_ctx.add_stage_timing("Semantic retrieval", timer.duration_ms)
                 debug_ctx.retrieved_chunks = relevant_chunks
                 debug_ctx.retrieval_query = " | ".join(_RETRIEVAL_QUERIES)
-            if self._settings.log_stages:
-                logger.info("Semantic retrieval took %.1f ms (%d chunks)", timer.duration_ms, len(relevant_chunks))
+            logger.info(
+                "✓ Semantic retrieval completed | time=%.1f ms | chunks_retrieved=%d",
+                timer.duration_ms,
+                len(relevant_chunks),
+            )
 
             if not relevant_chunks:
                 raise ApplicationException(
@@ -185,8 +202,11 @@ class ExtractMetadataUseCase:
             if debug_ctx:
                 debug_ctx.add_stage_timing("Prompt building", timer.duration_ms)
                 debug_ctx.llm_prompt = prompt
-            if self._settings.log_stages:
-                logger.info("Prompt building took %.1f ms", timer.duration_ms)
+            logger.info(
+                "✓ Prompt building completed | time=%.1f ms | prompt_len=%d",
+                timer.duration_ms,
+                len(prompt),
+            )
 
             # ── Stage 8: LLM inference ────────────────────────────────────────
             with StageTimer("LLM inference") as timer:
@@ -195,8 +215,11 @@ class ExtractMetadataUseCase:
             if debug_ctx:
                 debug_ctx.add_stage_timing("LLM inference", timer.duration_ms)
                 debug_ctx.llm_raw_response = llm_response
-            if self._settings.log_stages:
-                logger.info("LLM inference took %.1f ms", timer.duration_ms)
+            logger.info(
+                "✓ LLM inference completed | time=%.1f s | response_len=%d",
+                timer.duration_ms / 1000.0,
+                len(llm_response),
+            )
 
             # ── Stage 9: Parse & validate ─────────────────────────────────────
             with StageTimer("Metadata parsing") as timer:
@@ -205,8 +228,13 @@ class ExtractMetadataUseCase:
             if debug_ctx:
                 debug_ctx.add_stage_timing("Metadata parsing", timer.duration_ms)
                 debug_ctx.parsed_metadata = metadata.to_dict()
-            if self._settings.log_stages:
-                logger.info("Metadata parsing took %.1f ms", timer.duration_ms)
+            logger.info(
+                "✓ Metadata parsing completed | time=%.1f ms | product=%s | lang=%s | jurisdiction=%s",
+                timer.duration_ms,
+                metadata.product_name or "?",
+                metadata.language or "?",
+                metadata.jurisdiction or "?",
+            )
 
             # ── Stage 10: Persist result ──────────────────────────────────────
             with StageTimer("Database persistence") as timer:
@@ -214,18 +242,29 @@ class ExtractMetadataUseCase:
                 self._repository.update(document)
             if debug_ctx:
                 debug_ctx.add_stage_timing("Database persistence", timer.duration_ms)
-            if self._settings.log_stages:
-                logger.info("Database persistence took %.1f ms", timer.duration_ms)
+            logger.info(
+                "✓ Database persistence completed | time=%.1f ms | document_id=%s",
+                timer.duration_ms,
+                document_id,
+            )
 
             total_ms = (time.time() - pipeline_start) * 1000
             logger.info(
-                "Pipeline complete | document_id=%s | total_time_ms=%.1f | product=%s | lang=%s | jurisdiction=%s | company=%s",
+                "=== ✓ PIPELINE COMPLETE ===\n"
+                "document_id=%s | file=%s\n"
+                "total_time=%.1f s (%d ms)\n"
+                "product_name=%s\n"
+                "language=%s\n"
+                "jurisdiction=%s\n"
+                "company_name=%s",
                 document_id,
-                total_ms,
-                metadata.product_name,
-                metadata.language,
-                metadata.jurisdiction,
-                metadata.company_name,
+                original_filename,
+                total_ms / 1000.0,
+                int(total_ms),
+                metadata.product_name or "?",
+                metadata.language or "?",
+                metadata.jurisdiction or "?",
+                metadata.company_name or "?",
             )
 
             dto = self._to_dto(document)
@@ -235,7 +274,14 @@ class ExtractMetadataUseCase:
 
         except Exception as exc:
             error_msg = str(exc)
-            logger.error("Pipeline failed | document_id=%s | error=%s", document_id, error_msg)
+            logger.error(
+                "=== ✗ PIPELINE FAILED ===\n"
+                "document_id=%s | file=%s\n"
+                "error=%s",
+                document_id,
+                original_filename,
+                error_msg,
+            )
             document.mark_failed(error_msg)
             try:
                 self._repository.update(document)

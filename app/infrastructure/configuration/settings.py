@@ -44,12 +44,12 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_llm_model: str = "qwen3:8b"
     ollama_embedding_model: str = "nomic-embed-text:latest"
-    ollama_timeout_seconds: int = 600  # Increased from 180 to 600 for long operations
+    ollama_timeout_seconds: int = 600
 
     # ── RAG Pipeline ──────────────────────────────────────────────────────────
     chunk_size: int = 600
     chunk_overlap: int = 100
-    retrieval_k: int = 2  # Reduced to 2 for faster retrieval (limit to 5 total chunks)
+    retrieval_k: int = 8  # Retrieve top 8 similar chunks for better context
     embedding_batch_size: int = 32
 
     # ── Debug & Performance ───────────────────────────────────────────────────

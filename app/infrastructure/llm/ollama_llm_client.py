@@ -13,6 +13,7 @@ import httpx
 
 from app.domain.exceptions.base import LLMException
 from app.infrastructure.configuration.settings import Settings
+from app.infrastructure.llm.ollama_health_check import OllamaHealthCheck
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,11 @@ class OllamaLLMClient:
         self._model = settings.ollama_llm_model
         self._base_url = settings.ollama_base_url
         self._timeout = settings.ollama_timeout_seconds
+        self._health_check = OllamaHealthCheck(
+            base_url=settings.ollama_base_url,
+            timeout_seconds=5,
+        )
+        self._health_verified = False
         logger.info(
             "OllamaLLMClient ready | model=%s | base_url=%s | timeout=%ds",
             settings.ollama_llm_model,
@@ -37,6 +43,15 @@ class OllamaLLMClient:
         Raises:
             LLMException: if the Ollama server is unreachable or returns an error.
         """
+        # Verify Ollama health on first use
+        if not self._health_verified:
+            try:
+                self._health_check.check_server()
+                self._health_check.check_model_exists(self._model)
+                self._health_verified = True
+            except Exception as exc:
+                raise LLMException(f"Ollama health check failed: {exc}") from exc
+        
         logger.debug("LLM generate | model=%s | prompt_len=%d", self._model, len(prompt))
         
         payload = {
@@ -51,9 +66,11 @@ class OllamaLLMClient:
         try:
             # Create a client with explicit timeout (connect, read, write, pool)
             # Read timeout must be long for LLM inference
-            timeout = httpx.Timeout(timeout=10.0, read=float(self._timeout))
+            # Using shorter connect timeout but long read timeout
+            timeout = httpx.Timeout(timeout=5.0, read=float(self._timeout))
             
             with httpx.Client(timeout=timeout) as client:
+                logger.debug("Sending request to %s with model=%s | timeout=%.1fs", url, self._model, self._timeout)
                 response = client.post(url, json=payload)
             
             response.raise_for_status()
@@ -65,13 +82,18 @@ class OllamaLLMClient:
             else:
                 raise LLMException(f"Unexpected Ollama response format: {data}")
             
-            logger.info("LLM response received | len=%d | first_100_chars=%s", len(text), text[:100])
+            logger.info("LLM response received | model=%s | len=%d | first_100_chars=%s", 
+                       self._model, len(text), text[:100])
             logger.debug("Full LLM response:\n%s", text)
             return text
             
         except httpx.TimeoutException as exc:
             raise LLMException(
                 f"Ollama request timed out after {self._timeout}s (model={self._model}): {exc}"
+            ) from exc
+        except httpx.ConnectError as exc:
+            raise LLMException(
+                f"Cannot connect to Ollama at {self._base_url}: {exc}"
             ) from exc
         except httpx.HTTPStatusError as exc:
             raise LLMException(
