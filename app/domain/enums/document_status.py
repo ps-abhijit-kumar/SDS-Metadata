@@ -10,3 +10,4 @@ class DocumentStatus(str, Enum):
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+    DUPLICATE = "duplicate"

@@ -25,7 +25,9 @@ from app.presentation.middleware.exception_handlers import (
     application_exception_handler,
     unhandled_exception_handler,
 )
-from app.presentation.routers.extraction_router import router
+from app.presentation.routers.chat_router import router as chat_router
+from app.presentation.routers.extraction_router import router as extraction_router
+from app.presentation.routers.health_router import router as health_router
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +49,13 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="AI Document Intelligence Platform",
+        title="SDS Document Intelligence & Conversational RAG Platform",
         description=(
-            "Production-grade local RAG pipeline for SDS document metadata extraction. "
-            "Powered by Ollama + Qwen3:8B + ChromaDB + LangChain. "
+            "Production-grade SDS metadata extraction and document-grounded RAG platform. "
+            "Powered by Ollama + qwen3:4b-instruct + ChromaDB + PyMuPDF. "
             "Runs 100% locally — no cloud APIs required."
         ),
-        version="1.0.0",
+        version="2.0.0",
         lifespan=lifespan,
         docs_url="/docs",
         redoc_url="/redoc",
@@ -77,20 +79,19 @@ def create_app() -> FastAPI:
     app.add_exception_handler(Exception, unhandled_exception_handler)
 
     # Routers
-    app.include_router(router)
+    app.include_router(extraction_router)
+    app.include_router(chat_router)
+    app.include_router(health_router)
 
     @app.get("/", tags=["Root"])
     def root():
         return {
-            "service": "AI Document Intelligence Platform",
+            "service": "SDS Document Intelligence & Conversational RAG Platform",
             "status": "online",
+            "version": "2.0.0",
             "frontend": "http://127.0.0.1:8501",
             "docs": "http://127.0.0.1:8000/docs",
         }
-
-    @app.get("/health", tags=["Health"])
-    def health_check():
-        return {"status": "ok", "service": "AI Document Intelligence Platform"}
 
     return app
 

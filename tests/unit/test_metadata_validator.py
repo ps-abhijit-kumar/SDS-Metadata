@@ -10,15 +10,18 @@ def validator() -> MetadataValidator:
     return MetadataValidator()
 
 
-def test_parse_all_three_fields(validator):
+def test_parse_all_four_fields(validator):
     response = (
         "Product Name: Aceton 99%\n"
+        "Company Name: Sigma-Aldrich\n"
         "Language: English\n"
         "Jurisdiction: United States (OSHA / HazCom 2012)"
+
     )
     result = validator.parse_and_validate("file-001", response)
     assert result.file_id == "file-001"
     assert result.product_name == "Aceton 99%"
+    assert result.company_name == "Sigma-Aldrich"
     assert result.language == "English"
     assert result.jurisdiction == "United States (OSHA / HazCom 2012)"
 
@@ -78,6 +81,7 @@ def test_parse_case_insensitive_labels(validator):
 def test_parse_is_complete_true(validator):
     response = (
         "Product Name: Benzene\n"
+        "Company Name: Sigma-Aldrich\n"
         "Language: English\n"
         "Jurisdiction: European Union (REACH / CLP)"
     )

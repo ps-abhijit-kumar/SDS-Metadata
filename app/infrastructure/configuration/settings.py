@@ -23,40 +23,75 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # ── Application ───────────────────────────────────────────────────────────
+    # ───────────────────────────────
+    # Application
+    # ───────────────────────────────
     app_env: str = "development"
     app_host: str = "127.0.0.1"
     app_port: int = 8000
     debug: bool = False
 
-    # ── File Upload ───────────────────────────────────────────────────────────
+    # ───────────────────────────────
+    # File Upload
+    # ───────────────────────────────
     upload_dir: str = "./data/uploads"
     upload_max_size_mb: int = 50
 
-    # ── SQLite Database ───────────────────────────────────────────────────────
+    # ───────────────────────────────
+    # SQLite Database
+    # ───────────────────────────────
     database_url: str = "sqlite:///./data/platform.db"
 
-    # ── ChromaDB ─────────────────────────────────────────────────────────────
+    # ───────────────────────────────
+    # ChromaDB
+    # ───────────────────────────────
     chroma_db_dir: str = "./data/chroma_db"
     chroma_collection_name: str = "documents"
 
-    # ── Ollama ────────────────────────────────────────────────────────────────
+    # ───────────────────────────────
+    # Ollama
+    # ───────────────────────────────
     ollama_base_url: str = "http://127.0.0.1:11434"
-    ollama_llm_model: str = "qwen3:8b"
+    ollama_llm_model: str = "qwen3:4b-instruct"
+    metadata_model: str = "qwen3:4b-instruct"
+    chat_model: str = "qwen3:4b-instruct"
     ollama_embedding_model: str = "nomic-embed-text:latest"
-    ollama_timeout_seconds: int = 600  # Increased from 180 to 600 for long operations
+    ollama_timeout_seconds: int = 600
+    ollama_keep_alive: str = "15m"
 
-    # ── RAG Pipeline ──────────────────────────────────────────────────────────
+    # -------- LLM Generation Options --------
+    ollama_num_predict: int = 256
+    ollama_num_ctx: int = 4096
+    ollama_temperature: float = 0.0
+    ollama_top_k: int = 20
+    ollama_top_p: float = 0.90
+    ollama_repeat_penalty: float = 1.10
+    ollama_num_gpu: int = -1
+    ollama_num_thread: int = 0
+
+    # ───────────────────────────────
+    # RAG & Grounding Pipeline
+    # ───────────────────────────────
     chunk_size: int = 600
     chunk_overlap: int = 100
-    retrieval_k: int = 2  # Reduced to 2 for faster retrieval (limit to 5 total chunks)
+    retrieval_k: int = 8
+    rag_top_k: int = 4
+    rag_max_context_chunks: int = 3
+    rag_similarity_threshold: float = 1.20  # ChromaDB L2 distance threshold (score <= 1.20 is relevant)
+    rag_distance_threshold: float = 1.20    # Explicit distance threshold alias
+    fallback_response: str = "Information not available in the uploaded file."
+    multi_doc_fallback_response: str = "Information not available in the uploaded documents."
     embedding_batch_size: int = 32
 
-    # ── Debug & Performance ───────────────────────────────────────────────────
-    debug_rag: bool = False  # Enable debug mode: logs chunks, prompt, LLM response, timing
-    log_stages: bool = False  # Enable per-stage timing logs (all 10 stages)
+    # ───────────────────────────────
+    # Debug
+    # ───────────────────────────────
+    debug_rag: bool = False
+    log_stages: bool = False
 
-    # ── Logging ───────────────────────────────────────────────────────────────
+    # ───────────────────────────────
+    # Logging
+    # ───────────────────────────────
     log_level: str = "INFO"
     log_dir: str = "./logs"
 
@@ -64,14 +99,19 @@ class Settings(BaseSettings):
     @classmethod
     def validate_log_level(cls, v: str) -> str:
         allowed = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+
         upper = v.upper()
+
         if upper not in allowed:
-            raise ValueError(f"log_level must be one of {allowed}, got '{v}'")
+            raise ValueError(
+                f"log_level must be one of {allowed}, got '{v}'"
+            )
+
         return upper
 
     @property
     def db_path(self) -> Path:
-        """Resolve the file path from the sqlite:/// URL."""
+        """Resolve SQLite path."""
         raw = self.database_url.replace("sqlite:///", "")
         return Path(raw)
 
@@ -86,9 +126,5 @@ class Settings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    """Return the singleton Settings instance.
-
-    Using lru_cache means the .env file is read exactly once.
-    Tests can clear the cache with get_settings.cache_clear().
-    """
+    """Return singleton Settings instance."""
     return Settings()

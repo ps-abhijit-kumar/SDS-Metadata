@@ -1,12 +1,12 @@
-"""Extraction API router - simplified without background tasks.
+"""Extraction API router - async/parallel processing.
 
-The extraction runs synchronously but quickly due to:
-- Reduced retrieval queries
-- Reduced chunk retrieval count
-- Optimized pipeline
+The extraction runs asynchronously with parallel handling to reduce latency:
+- Multiple files processed concurrently (max 2 concurrent)
+- Each file runs in thread pool executor (non-blocking)
+- Improves responsiveness with slow LLMs like qwen3:8b
 
 Endpoints:
-  POST /api/v1/extract           — Upload one or more SDS PDFs
+  POST /api/v1/extract           — Upload one or more SDS PDFs (async)
   GET  /api/v1/documents         — List all processed documents
   GET  /api/v1/documents/{id}    — Get a single document result
   DELETE /api/v1/documents/{id}  — Delete a document record
@@ -14,6 +14,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import shutil
 import uuid
@@ -22,11 +23,13 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi import status as http_status
 
+from app.application.services.async_extraction_service import AsyncExtractionService
 from app.application.use_cases.extract_metadata_use_case import ExtractMetadataUseCase
 from app.domain.exceptions.base import DocumentNotFoundException, InvalidDocumentException
 from app.domain.repositories.document_repository import DocumentRepository
 from app.infrastructure.configuration.settings import get_settings
 from app.presentation.dependencies.container import (
+    get_async_extraction_service,
     get_document_repository,
     get_extract_use_case,
 )
@@ -68,19 +71,22 @@ def _save_upload(file: UploadFile, upload_dir: Path) -> Path:
     summary="Upload SDS PDF documents and extract metadata",
     description=(
         "Upload one or more SDS PDF files. The system runs the RAG pipeline "
-        "for each document and returns the extracted metadata. "
-        "This endpoint may take 20-60 seconds per file."
+        "for each document in parallel and returns the extracted metadata. "
+        "Multiple files are processed concurrently (up to 2 at a time) "
+        "to reduce overall latency. This endpoint may take 20-60 seconds per file."
     ),
 )
-def extract_metadata(
+async def extract_metadata(
     files: list[UploadFile] = File(..., description="One or more SDS PDF files."),
-    use_case: ExtractMetadataUseCase = Depends(get_extract_use_case),
+    async_service: AsyncExtractionService = Depends(get_async_extraction_service),
 ) -> BatchExtractionResponse:
-    """Upload and extract metadata from SDS documents."""
+    """Upload and extract metadata from SDS documents in parallel."""
     settings = get_settings()
     upload_dir = Path(settings.upload_dir)
+    saved_files: list[tuple[Path, str]] = []
     results: list[MetadataResponse] = []
 
+    # Validate and save all files first
     for upload_file in files:
         logger.info("Received upload: %s", upload_file.filename)
         try:
@@ -95,12 +101,7 @@ def extract_metadata(
                     f"of {settings.upload_max_size_mb} MB."
                 )
 
-            # Execute extraction
-            dto = use_case.execute(
-                file_path=saved_path,
-                original_filename=upload_file.filename or saved_path.name,
-            )
-            results.append(MetadataResponse(**dto.to_dict()))
+            saved_files.append((saved_path, upload_file.filename or saved_path.name))
 
         except InvalidDocumentException as exc:
             logger.warning("Invalid upload: %s — %s", upload_file.filename, exc.message)
@@ -112,16 +113,13 @@ def extract_metadata(
                     error_message=exc.message,
                 )
             )
-        except Exception as exc:
-            logger.exception("Unexpected error processing %s", upload_file.filename)
-            results.append(
-                MetadataResponse(
-                    document_id="",
-                    filename=upload_file.filename or "unknown",
-                    status="failed",
-                    error_message=str(exc),
-                )
-            )
+
+    # Extract all saved files in parallel
+    if saved_files:
+        logger.info("Starting parallel extraction | files=%d", len(saved_files))
+        extraction_results = await async_service.extract_parallel(saved_files)
+        for dto in extraction_results:
+            results.append(MetadataResponse(**dto.to_dict()))
 
     return BatchExtractionResponse(total=len(results), results=results)
 

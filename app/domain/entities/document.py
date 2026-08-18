@@ -23,9 +23,14 @@ class Document:
     id: str
     filename: str
     file_path: str
+    file_hash: str = ""
     status: DocumentStatus = DocumentStatus.PENDING
     metadata: SDSMetadata | None = None
+    processing_version: str = "v3"
+    version_number: int = 1
+    is_active: bool = True
     error_message: str | None = None
+    processing_time_ms: float | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -35,9 +40,15 @@ class Document:
         self.status = DocumentStatus.PROCESSING
         self.updated_at = datetime.now(timezone.utc)
 
-    def mark_completed(self, metadata: SDSMetadata) -> None:
+    def mark_completed(self, metadata: SDSMetadata, processing_time_ms: float | None = None) -> None:
         self.status = DocumentStatus.COMPLETED
         self.metadata = metadata
+        self.processing_time_ms = processing_time_ms
+        self.updated_at = datetime.now(timezone.utc)
+
+    def mark_duplicate(self, existing_metadata: SDSMetadata) -> None:
+        self.status = DocumentStatus.DUPLICATE
+        self.metadata = existing_metadata
         self.updated_at = datetime.now(timezone.utc)
 
     def mark_failed(self, reason: str) -> None:
