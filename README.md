@@ -1,12 +1,16 @@
 # 🧠 AI Document Intelligence Platform
 
-> A production-oriented AI-powered document intelligence platform that extracts structured metadata from Safety Data Sheets (SDS) using a fully local Retrieval-Augmented Generation (RAG) pipeline powered by Ollama, ChromaDB, FastAPI, and Streamlit.
+> A production-oriented AI-powered **Safety Data Sheet (SDS) Document Intelligence Platform** that extracts structured metadata and enables grounded conversational question answering over uploaded SDS documents using a fully local Retrieval-Augmented Generation (RAG) pipeline.
+
+Built with **FastAPI, Streamlit, Ollama, ChromaDB, SQLite, PyMuPDF, and local embedding models**, the platform is designed to process sensitive documents without depending on external cloud AI services.
+
+---
 
 <p align="center">
 
-![Python](https://img.shields.io/badge/Python-3.12+-blue?logo=python)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115-success?logo=fastapi)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.45-red?logo=streamlit)
+![Python](https://img.shields.io/badge/Python-3.13+-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-success?logo=fastapi)
+![Streamlit](https://img.shields.io/badge/Streamlit-red?logo=streamlit)
 ![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-black)
 ![ChromaDB](https://img.shields.io/badge/VectorDB-ChromaDB-blueviolet)
 ![SQLite](https://img.shields.io/badge/Database-SQLite-lightgrey)
@@ -18,17 +22,22 @@
 
 # 📌 Overview
 
-Safety Data Sheets (SDS) contain critical information regarding chemicals, hazards, storage conditions, emergency contacts, and regulatory compliance. Manually extracting structured information from these documents is repetitive, time-consuming, and prone to human error.
+Safety Data Sheets (SDS) contain critical information about chemical products, hazards, first-aid measures, handling and storage, exposure controls, regulatory information, and other safety requirements.
 
-This project automates that process using a **fully local Retrieval-Augmented Generation (RAG)** pipeline that combines semantic search with a locally hosted Large Language Model (LLM).
+Manually extracting and searching this information from long PDF documents can be time-consuming and error-prone.
 
-Unlike cloud-based AI solutions, this platform:
+This project provides a local AI-powered solution that combines:
 
-- Runs completely offline
-- Requires no OpenAI or cloud API keys
-- Keeps confidential documents on the local machine
-- Uses semantic retrieval for improved extraction accuracy
-- Stores extraction history for auditing and analysis
+- Structured SDS metadata extraction
+- Semantic document retrieval
+- Section-aware retrieval
+- Conversational RAG
+- Document-grounded question answering
+- Strict anti-hallucination guardrails
+- Local LLM inference
+- Document history and audit information
+
+The platform allows users to upload an SDS PDF, extract the required metadata, and then ask questions about the uploaded document through a conversational interface.
 
 ---
 
@@ -36,221 +45,401 @@ Unlike cloud-based AI solutions, this platform:
 
 The platform was designed to:
 
-- Extract structured metadata from SDS PDFs
-- Use semantic retrieval instead of sending the whole document to an LLM
-- Improve extraction accuracy through Retrieval-Augmented Generation (RAG)
-- Support local-first AI deployments
-- Demonstrate production-oriented software architecture
-- Provide a scalable foundation for future enterprise document intelligence workflows
+- Extract mandatory structured metadata from SDS PDFs.
+- Retrieve relevant information from large SDS documents.
+- Allow users to ask natural-language questions about uploaded documents.
+- Provide answers grounded only in the uploaded document.
+- Prevent the LLM from answering unrelated outside-world questions.
+- Reduce hallucinated responses through retrieval and grounding validation.
+- Maintain document-level retrieval isolation.
+- Keep sensitive documents and AI processing local.
+- Provide a production-oriented backend architecture.
+- Maintain extraction and document history for auditability.
 
 ---
 
-# ✨ Features
+# ✨ Core Features
 
-## Document Processing
+## 📄 SDS Document Processing
 
 - PDF upload
-- Automatic text extraction
+- PDF text extraction
 - Text normalization
-- Intelligent chunking
+- Semantic document chunking
+- SDS section detection
 - Metadata extraction
-- Structured JSON output
+- Structured metadata validation
+- Document-specific vector indexing
+- Multiple document history
+
+The primary extracted metadata includes:
+
+```text
+Product Name
+Company / Manufacturer
+Language
+Regulatory Jurisdiction
+```
+## 🤖 Conversational RAG Chat
+
+The platform includes a conversational chatbot that allows users to ask questions about the currently uploaded SDS.
+
+**Example:**
+
+> **User:** What are the first aid measures?
+>
+> **A:** Provides the relevant first-aid information from the uploaded SDS.
+
+Users can ask natural-language questions without needing to know the exact section number of the SDS.
+
+Examples include:
+
+- What are the first aid measures?
+- What are the storage conditions?
+- What precautions are listed?
+- What are the hazards?
+- What should be done in case of accidental exposure?
+- What protective equipment is required?
+
+The chatbot retrieves relevant document evidence before generating an answer.
 
 ---
 
-## AI Pipeline
+## 🛡️ Document Grounding & Guardrails
 
-- Local Ollama inference
-- Qwen3:8B LLM
-- Nomic embedding model
-- ChromaDB vector search
-- Semantic Retrieval
-- Prompt engineering
-- Response validation
+A major design goal of the chatbot is to prevent hallucinated or unrelated responses.
 
----
+The chatbot follows a strict rule:
 
-## Backend
+> The chatbot can only answer using information supported by the currently selected/uploaded document.
+> It must not use general world knowledge as a substitute for missing document evidence.
 
-- FastAPI REST API
-- Dependency Injection
-- Clean Architecture
-- Repository Pattern
-- Async processing
-- Structured logging
-- SQLite persistence
+For example:
 
----
+> **User:** Who won the 2022 FIFA World Cup?
+>
+> **A:** Information not available in the uploaded file.
 
-## Frontend
+Similarly:
 
-- Streamlit UI
-- Upload interface
-- Extraction results
-- Processing history
-- Status indicators
+> **User:** What is the capital of France?
+>
+> **A:** Information not available in the uploaded file.
 
----
+The application performs an evidence check before allowing the LLM to generate a response.
 
-# 🏗 System Architecture
+Conceptually:
 
 ```
-                    +----------------------+
-                    |    Streamlit UI      |
-                    +----------+-----------+
-                               |
-                               |
-                               v
-                    +----------------------+
-                    |     FastAPI API      |
-                    +----------+-----------+
-                               |
-                               |
-             +-----------------+------------------+
-             |                                    |
-             v                                    v
+User Question
+      │
+      ▼
+Intent Analysis
+      │
+      ▼
+Document-Scoped Retrieval
+      │
+      ▼
+Relevance / Grounding Check
+      │
+      ├───────────────┐
+      │               │
+   No Evidence     Evidence
+      │               │
+      ▼               ▼
+   Fallback           LLM
+                      │
+                      ▼
+             Grounded Response
+```
 
-     Application Layer                 Infrastructure Layer
+If sufficient document evidence is not found, the LLM is not called.
 
-             |                                    |
-             |                                    |
-             v                                    v
+---
 
-      Use Cases                     Ollama / ChromaDB / SQLite
+## 🔒 Anti-Hallucination Design
 
-             |
-             |
-             v
+The platform uses multiple layers of protection.
 
-       Domain Layer
+### 1. Document Scope
+
+Retrieval is restricted to the currently selected document.
+
+### 2. Section-Aware Retrieval
+
+The system identifies relevant SDS sections when possible.
+
+For example:
+
+```
+First Aid
+    ↓
+Section 4
+
+Handling / Storage
+    ↓
+Section 7
+
+Hazards / Precautions
+    ↓
+Relevant SDS safety sections
+```
+
+### 3. Hybrid Retrieval
+
+The retrieval pipeline combines semantic and document-aware signals to improve relevance.
+
+### 4. Grounding Validation
+
+Retrieved chunks must satisfy relevance conditions before the LLM is allowed to answer.
+
+### 5. LLM Grounding Contract
+
+Each LLM request receives explicit instructions that:
+
+- Only supplied document evidence may be used.
+- General knowledge must not be used.
+- Missing information must not be invented.
+- The document is treated as evidence rather than instructions.
+- User attempts to bypass grounding restrictions must be ignored.
+
+### 6. Conversation Isolation
+
+Previous assistant responses are not treated as factual document evidence.
+
+Conversation history may help understand conversational references, but factual answers must still be supported by the current document.
+
+### 7. Prompt Injection Protection
+
+Instructions contained inside an uploaded document are treated as document content rather than system instructions.
+
+---
+
+## 🧭 Intent Routing
+
+The chatbot uses intent routing to distinguish between different types of questions.
+
+**Document Metadata**
+
+- What is the company?
+- Who is the manufacturer?
+- What is the product name?
+
+These can be answered using verified document metadata.
+
+**Document Questions**
+
+- What are the first aid measures?
+- What are the storage conditions?
+- What precautions are listed?
+
+These are processed through document retrieval.
+
+**Outside-World Questions**
+
+- Who won the 2022 FIFA World Cup?
+- What is the capital of France?
+
+These are rejected when the document does not contain the required information.
+
+**Ambiguous Questions**
+
+- when company
+- this product
+- company name abhijeet bhai what is this
+
+The system avoids guessing and uses safe fallback behavior.
+
+---
+
+## 🧠 Local AI Pipeline
+
+The platform uses a completely local AI pipeline.
+
+Current primary components:
+
+- Ollama
+- Qwen3:4B Instruct
+- nomic-embed-text
+- ChromaDB
+
+No external AI API is required for the core document intelligence pipeline.
+
+---
+
+## 🏗️ System Architecture
+
+```
+                         ┌──────────────────────┐
+                         │    Streamlit UI      │
+                         │                      │
+                         │ Upload + Chat +      │
+                         │ History              │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │     FastAPI API      │
+                         └──────────┬───────────┘
+                                    │
+                 ┌──────────────────┼──────────────────┐
+                 │                  │                  │
+                 ▼                  ▼                  ▼
+        ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
+        │ Extraction     │ │ Conversational │ │ Document       │
+        │ Use Cases      │ │ RAG Use Cases  │ │ History        │
+        └───────┬────────┘ └───────┬────────┘ └───────┬────────┘
+                │                  │                  │
+                ▼                  ▼                  ▼
+        ┌────────────────────────────────────────────────────┐
+        │                 Application Layer                  │
+        │                                                    │
+        │ Intent Router                                      │
+        │ Query Analyzer                                     │
+        │ Section Detector                                   │
+        │ Retrieval Service                                  │
+        │ Grounding Service                                  │
+        │ Chat Service                                       │
+        │ Metadata Validator                                 │
+        └────────────────────────┬───────────────────────────┘
+                                 │
+                                 ▼
+        ┌────────────────────────────────────────────────────┐
+        │               Infrastructure Layer                 │
+        │                                                    │
+        │ PyMuPDF                                            │
+        │ Ollama                                             │
+        │ nomic-embed-text                                   │
+        │ ChromaDB                                           │
+        │ SQLite                                             │
+        └────────────────────────────────────────────────────┘
 ```
 
 ---
 
-# 🔄 RAG Pipeline
+## 🔄 Document Processing Pipeline
 
 ```
 PDF Upload
-     │
-     ▼
-
-Extract Text (PyMuPDF)
-
-     │
-     ▼
-
-Clean & Normalize
-
-     │
-     ▼
-
+    │
+    ▼
+Read PDF with PyMuPDF
+    │
+    ▼
+Extract Text
+    │
+    ▼
+Normalize Text
+    │
+    ▼
+Detect Language
+    │
+    ▼
 Semantic Chunking
-
-     │
-     ▼
-
+    │
+    ▼
 Generate Embeddings
 (nomic-embed-text)
-
-     │
-     ▼
-
-Store in ChromaDB
-
-     │
-     ▼
-
-Retrieve Relevant Chunks
-
-     │
-     ▼
-
-Prompt Qwen3:8B
-
-     │
-     ▼
-
-Parse Response
-
-     │
-     ▼
-
+    │
+    ▼
+Store Document Chunks
+in ChromaDB
+    │
+    ▼
+Retrieve Relevant Evidence
+    │
+    ▼
+Extract Metadata
+    │
+    ▼
 Validate Metadata
-
-     │
-     ▼
-
-Store in SQLite
-
-     │
-     ▼
-
-Display Results
+    │
+    ▼
+Persist Results
+in SQLite
 ```
 
 ---
 
-# 🖼 Application Screenshots
+## 💬 Conversational RAG Pipeline
 
-## Home
-
-![Home](docs/images/home.png)
+```
+User Question
+      │
+      ▼
+Intent Analysis
+      │
+      ▼
+Section Detection
+      │
+      ▼
+Document-Scoped Retrieval
+      │
+      ▼
+Hybrid Relevance Filtering
+      │
+      ▼
+Grounding Validation
+      │
+      ├───────────────┐
+      │               │
+      ▼               ▼
+ No Evidence       Evidence Found
+      │               │
+      ▼               ▼
+  Fallback           Prompt
+      │               │
+      │               ▼
+      │          Local Qwen3
+      │               │
+      │               ▼
+      │       Grounded Answer
+      │               │
+      └───────────────┴──────►
+                         Streamlit UI
+```
 
 ---
 
-## Upload Document
-
-![Upload](docs/images/upload.png)
-
----
-
-## Extraction Result
-
-![Extraction](docs/images/extraction-result.png)
-
----
-
-## Processing History
-
-![History](docs/images/history.png)
-
----
-
-## Swagger API
-
-![Swagger](docs/images/swagger.png)
-
----
-
-## System Running
-
-![Running](docs/images/system-running.png)
-
----
-
-# 🛠 Technology Stack
+## 🛠 Technology Stack
 
 | Layer | Technology |
-|--------|------------|
-| Language | Python 3.12+ |
+|---|---|
+| Language | Python 3.13+ |
 | Backend | FastAPI |
 | Frontend | Streamlit |
-| LLM | Ollama (Qwen3:8B) |
+| LLM Runtime | Ollama |
+| LLM | Qwen3:4B Instruct |
 | Embeddings | nomic-embed-text |
 | Vector Database | ChromaDB |
 | Database | SQLite |
 | PDF Parsing | PyMuPDF |
-| Testing | Pytest |
+| Retrieval | Semantic / Hybrid Retrieval |
+| Architecture | Clean Architecture |
 | Logging | Python Logging |
-# 📁 Project Structure
+| Containerization | Docker-ready |
 
-```text
+---
+
+## 📁 Project Structure
+
+```
 SDS-Metadata/
 │
 ├── app/
 │   ├── application/
 │   │   ├── services/
+│   │   │   ├── chat_service.py
+│   │   │   ├── grounding_service.py
+│   │   │   ├── intent_router.py
+│   │   │   ├── retrieval_service.py
+│   │   │   ├── section_detector.py
+│   │   │   └── ...
+│   │   │
 │   │   └── use_cases/
+│   │       ├── chat_with_document_use_case.py
+│   │       ├── extract_metadata_use_case.py
+│   │       └── ...
 │   │
 │   ├── domain/
 │   │   ├── entities/
@@ -281,6 +470,12 @@ SDS-Metadata/
 ├── docs/
 │   └── images/
 │
+├── data/
+│   ├── chroma_db/
+│   └── platform.db
+│
+├── logs/
+│
 ├── requirements.txt
 ├── pyproject.toml
 ├── docker-compose.yml
@@ -290,31 +485,26 @@ SDS-Metadata/
 
 ---
 
-# 🚀 Getting Started
+## 🚀 Getting Started
 
-## Prerequisites
+### Prerequisites
 
-Before running the project, install:
+Install:
 
-- Python 3.12+
-- Ollama
+- Python 3.13+
 - Git
+- Ollama
 
----
+### Install Ollama
 
-## Install Ollama
-
-Download:
+Download and install Ollama from:
 
 https://ollama.com
 
-Pull the required models.
+Pull the required models:
 
 ```bash
-ollama pull qwen3:8b
-```
-
-```bash
+ollama pull qwen3:4b-instruct
 ollama pull nomic-embed-text
 ```
 
@@ -324,427 +514,540 @@ Verify:
 ollama list
 ```
 
-You should see:
+You should see the required models.
 
-```
-qwen3:8b
-nomic-embed-text
-```
-
----
-
-# Clone Repository
+### Clone Repository
 
 ```bash
 git clone https://github.com/ps-abhijit-kumar/SDS-Metadata.git
-
 cd SDS-Metadata
 ```
 
----
+### Create Virtual Environment
 
-# Create Virtual Environment
+Windows:
 
-Windows
-
-```powershell
+```bash
 python -m venv .venv
 ```
 
-Activate
+Activate:
 
-```powershell
+```bash
 .\.venv\Scripts\Activate.ps1
 ```
 
----
+### Install Dependencies
 
-# Install Dependencies
-
-```powershell
+```bash
 pip install -r requirements.txt
 ```
 
----
+### Configure Environment
 
-# Configure Environment
+Copy:
 
-Copy
-
-```text
+```
 .env.example
 ```
 
-to
+to:
 
-```text
+```
 .env
 ```
 
-Update values if necessary.
+Update environment variables if required.
 
----
+Typical configuration includes:
 
-# Start Ollama
+- `OLLAMA_BASE_URL`
+- `OLLAMA_MODEL`
+- `OLLAMA_EMBEDDING_MODEL`
+- `CHROMA_DB_DIR`
+- `SQLITE_DB_PATH`
 
-Usually Ollama starts automatically.
+### Start Ollama
+
+Ollama normally runs as a local service.
 
 Verify:
 
-```powershell
+```bash
 ollama ps
 ```
 
-or
+or:
 
-```powershell
+```bash
 Invoke-RestMethod http://127.0.0.1:11434/api/tags
 ```
 
----
+### Start Backend
 
-# Start Backend
+Open a PowerShell terminal inside the project:
 
-```powershell
-python -m uvicorn app.main:app --reload
-```
-
-Backend
-
-```
-http://127.0.0.1:8000
-```
-
-Swagger
-
-```
-http://127.0.0.1:8000/docs
-```
-
----
-
-# Start Frontend
-
-Open another terminal.
-
-```powershell
+```bash
 .\.venv\Scripts\Activate.ps1
 ```
 
-Run
+Run:
 
-```powershell
+```bash
+python -m uvicorn app.main:app --reload
+```
+
+Backend:
+
+http://localhost:8000
+
+Swagger API:
+
+http://localhost:8000/docs
+
+### Start Frontend
+
+Open another PowerShell terminal:
+
+```bash
+cd SDS-Metadata
+```
+
+Activate the environment:
+
+```bash
+.\.venv\Scripts\Activate.ps1
+```
+
+Run:
+
+```bash
 python -m streamlit run frontend/app.py
 ```
 
-Application
+Application:
 
-```
 http://localhost:8501
+
+---
+
+## 🔄 Example Workflow
+
+**Step 1 — Upload an SDS**
+
+Upload an SDS PDF through the Streamlit interface.
+
+**Step 2 — Metadata Extraction**
+
+The system processes the document and extracts:
+
+- Product Name
+- Company / Manufacturer
+- Language
+- Regulatory Jurisdiction
+
+**Step 3 — Document Indexing**
+
+The PDF is:
+
+```
+Extracted
+    ↓
+Normalized
+    ↓
+Chunked
+    ↓
+Embedded
+    ↓
+Stored in ChromaDB
 ```
 
----
+**Step 4 — Ask Questions**
 
-# Example Workflow
+The user can then ask questions about the uploaded SDS.
 
-1. Upload an SDS PDF.
-2. Click **Extract**.
-3. The system:
+Example:
 
-- extracts text
-- creates semantic chunks
-- generates embeddings
-- searches ChromaDB
-- prompts Qwen3:8B
-- validates extracted metadata
-- stores the result in SQLite
+> What are the first aid measures?
 
-4. View structured output.
+The system retrieves the relevant evidence and generates a grounded answer.
 
----
+**Step 5 — Grounding Protection**
 
-# Sample Output
+If the document does not contain the requested information:
 
-```text
-Product Name
--------------------------
-Lipid Mixture 1, Chemically Defined
+> Information not available in the uploaded file.
 
-Company Name
--------------------------
-Sigma-Aldrich Chemical Pvt. Ltd.
-
-Language
--------------------------
-Spanish
-
-Jurisdiction
--------------------------
-European Union (REACH / CLP)
-```
+The system does not use outside knowledge to fill the gap.
 
 ---
 
-# API Endpoints
+## 📋 Example Chat Behavior
+
+**Document-grounded question**
+
+> **User:** What are the first aid measures?
+>
+> **A:** Provides the first-aid information found in the uploaded SDS.
+
+**Another document-grounded question**
+
+> **User:** What are the storage conditions?
+>
+> **A:** Provides storage information supported by the SDS.
+
+**Outside-world question**
+
+> **User:** Who won the 2022 FIFA World Cup?
+>
+> **A:** Information not available in the uploaded file.
+
+**General knowledge question**
+
+> **User:** What is the capital of France?
+>
+> **A:** Information not available in the uploaded file.
+
+**Document metadata question**
+
+> **User:** What is the company?
+>
+> **A:** Returns the verified manufacturer/company from the uploaded SDS.
+
+---
+
+## 📡 API Endpoints
+
+The application exposes FastAPI endpoints for document processing and conversational RAG.
 
 | Method | Endpoint | Description |
-|---------|----------|-------------|
-| GET | / | Health Status |
-| POST | /extract | Extract SDS Metadata |
-| GET | /history | Previous Extractions |
-| GET | /docs | Swagger Documentation |
+|---|---|---|
+| GET | `/` | Application / health status |
+| GET | `/health` | Health check |
+| POST | `/api/v1/extract` | Upload and extract SDS metadata |
+| GET | `/api/v1/documents` | List processed documents |
+| POST | `/api/v1/chat/stream` | Streaming document-grounded chat |
+| GET | `/docs` | Swagger API documentation |
+
+Additional endpoints may be available depending on the current API configuration.
 
 ---
 
-# Configuration
+## ⚙️ Configuration
 
 The application uses environment variables.
 
-Important variables include:
-
 | Variable | Purpose |
-|-----------|----------|
-| OLLAMA_BASE_URL | Ollama Server |
-| OLLAMA_MODEL | LLM Model |
-| OLLAMA_EMBEDDING_MODEL | Embedding Model |
-| CHROMA_DB_DIR | Vector Database |
-| SQLITE_DB_PATH | SQLite Database |
+|---|---|
+| `OLLAMA_BASE_URL` | Ollama server URL |
+| `OLLAMA_MODEL` | Local LLM model |
+| `OLLAMA_EMBEDDING_MODEL` | Embedding model |
+| `CHROMA_DB_DIR` | ChromaDB storage directory |
+| `SQLITE_DB_PATH` | SQLite database path |
+
+Typical local Ollama configuration:
+
+```
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen3:4b-instruct
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+```
 
 ---
 
-# Logging
+## 📊 Document History & Audit
 
-Logs are written to:
+The application maintains document processing history using SQLite.
+
+The system records information related to:
+
+- Uploaded documents
+- Extraction status
+- Processing results
+- Document metadata
+- Processing events
+- Errors
+- Performance information
+
+This provides an audit-friendly foundation for document intelligence workflows.
+
+---
+
+## 📝 Logging
+
+Application logs are maintained under:
 
 ```
 logs/
 ```
 
-Typical log entries include:
+Typical log information includes:
 
-- application startup
-- extraction requests
-- embedding generation
-- retrieval
+- Application startup
+- Document uploads
+- PDF extraction
+- Language detection
+- Semantic chunking
+- Embedding generation
+- ChromaDB operations
+- Retrieval
+- Grounding decisions
 - LLM calls
-- database operations
-- errors
-- performance metrics
+- Metadata validation
+- Chat routing
+- Errors
+- Performance metrics
+
+The chat pipeline also provides visibility into whether evidence was retrieved and whether the LLM was invoked.
 
 ---
 
-# Testing
+## 🔐 Security & Privacy
 
-Run unit tests.
+The platform follows a local-first architecture.
 
-```powershell
+Key characteristics:
+
+- No external AI API is required.
+- Documents remain on the local machine.
+- LLM inference runs through local Ollama.
+- Embeddings are generated locally.
+- Vector storage is local.
+- SQLite persistence is local.
+- Document retrieval is scoped to the selected document.
+- Uploaded document content is treated as untrusted data.
+- Prompt injection attempts inside documents are not treated as system instructions.
+
+This architecture is suitable for environments where document privacy and local processing are important.
+
+---
+
+## 🧪 Testing
+
+The repository contains testing infrastructure.
+
+Testing should cover areas such as:
+
+- Metadata extraction
+- Retrieval
+- Grounding
+- Intent routing
+- Section detection
+- Conversational RAG
+- Document isolation
+- API behavior
+
+Example:
+
+```bash
 pytest
 ```
 
-Run with verbose output.
+Verbose:
 
-```powershell
+```bash
 pytest -v
 ```
 
-Run end-to-end verification.
-
-```powershell
-python test_e2e.py
-```
+End-to-end verification can also be performed according to the project's available verification scripts.
 
 ---
 
-# Performance Characteristics
+## ⚡ Performance Characteristics
 
-Current implementation supports:
+The current architecture supports:
 
-- Local inference
-- Offline execution
+- Local LLM inference
+- Local embeddings
+- Batched embedding generation
 - Semantic retrieval
-- Batched embeddings
-- Async extraction pipeline
+- Section-aware retrieval
+- Hybrid retrieval
+- Async document extraction
+- ChromaDB persistence
 - SQLite persistence
-- Chroma vector search
+- Streaming conversational responses
 - Multiple document history
 
----
+LLM inference time depends on:
 
-# Security
+- Document size
+- Number of retrieved chunks
+- CPU/GPU resources
+- Ollama model
+- Prompt size
 
-The platform is designed with a local-first approach.
-
-Benefits include:
-
-- No cloud APIs
-- No external LLM requests
-- Documents remain on the local machine
-- Offline processing
-- Environment-based configuration
+Local inference can take significantly longer than cloud inference on CPU-only systems. This is an expected trade-off for local processing and document privacy.
 
 ---
 
-# Engineering Highlights
+## 🏆 Engineering Highlights
 
 This project demonstrates:
 
 - Clean Architecture
 - Dependency Injection
 - Repository Pattern
-- Retrieval-Augmented Generation (RAG)
+- Retrieval-Augmented Generation
 - Local LLM Integration
 - Vector Database Design
 - Semantic Search
+- Hybrid Retrieval
+- Section-Aware Retrieval
+- Grounding Validation
+- Intent Routing
+- Prompt Engineering
+- Anti-Hallucination Guardrails
+- Prompt Injection Protection
 - Async Processing
-- Production Logging
-- Modular Design
-- Configuration Management
-- Enterprise Project Structure
----
-
-# 💼 Skills Demonstrated
-
-This project demonstrates practical experience with modern AI engineering and backend development.
-
-### Artificial Intelligence
-
-- Built a fully local Retrieval-Augmented Generation (RAG) pipeline.
-- Integrated Ollama-hosted Qwen3:8B for metadata extraction.
-- Implemented semantic retrieval using vector embeddings.
-- Used embedding-based context retrieval to improve LLM accuracy.
-- Eliminated dependency on cloud AI APIs for secure, offline inference.
+- Streaming Responses
+- Structured Logging
+- SQLite Persistence
+- Environment-Based Configuration
+- Modular Enterprise Project Structure
+- Git-based version control
 
 ---
 
-### Backend Engineering
-
-- Developed REST APIs using FastAPI.
-- Applied Clean Architecture principles for separation of concerns.
-- Implemented dependency injection for modularity and maintainability.
-- Designed reusable service and repository layers.
-- Added structured logging and centralized exception handling.
-
----
-
-### Data Engineering
-
-- Parsed Safety Data Sheets (SDS) using PyMuPDF.
-- Implemented document preprocessing and normalization.
-- Generated semantic embeddings using nomic-embed-text.
-- Persisted structured metadata in SQLite.
-- Indexed document chunks using ChromaDB for efficient retrieval.
-
----
-
-### Software Engineering
-
-- Modular enterprise project structure.
-- Environment-driven configuration.
-- Async document processing.
-- Version-controlled development using Git.
-- Docker-ready deployment structure.
-- Comprehensive project documentation.
-
----
-
-# 💡 Engineering Challenges & Solutions
+## 💡 Engineering Challenges & Solutions
 
 | Challenge | Solution |
-|-----------|----------|
-| Large SDS documents | Semantic chunking before LLM inference |
-| Hallucinated responses | Retrieval-Augmented Generation (RAG) |
-| Cloud dependency | Fully local Ollama deployment |
-| Slow embedding generation | Batched embedding requests |
-| Long processing pipeline | Modular asynchronous services |
-| Configuration management | Environment-based settings |
-| Reusability | Clean Architecture with dependency injection |
+|---|---|
+| Large SDS documents | Semantic chunking before retrieval |
+| Irrelevant retrieval | Hybrid relevance filtering |
+| Hallucinated responses | Retrieval + grounding validation |
+| Outside-world questions | Evidence gate before LLM invocation |
+| Long conversations | Limited conversational context |
+| LLM context loss | Per-request grounding contract |
+| Document prompt injection | Treat document text as untrusted evidence |
+| Ambiguous metadata queries | Intent routing |
+| Section-specific questions | Section-aware retrieval |
+| Cloud dependency | Local Ollama deployment |
+| Slow embeddings | Batched embedding requests |
+| Long extraction pipeline | Async processing |
+| Configuration management | Environment-based configuration |
+| Maintainability | Clean Architecture and dependency injection |
 
 ---
 
-# ⚡ Performance Optimizations
+## ⚡ Performance Optimizations
 
 Current optimizations include:
 
-- Batched embedding generation.
-- Persistent ChromaDB vector storage.
-- Local inference without network latency.
-- Reusable dependency container.
-- Async extraction pipeline.
-- Lightweight SQLite persistence.
-- Modular service architecture.
-- Structured logging for easier debugging.
+- Batched embedding generation
+- Persistent ChromaDB storage
+- Document-scoped retrieval
+- Section-aware retrieval
+- Hybrid retrieval
+- Async extraction
+- Local inference
+- Reusable application dependencies
+- SQLite persistence
+- Structured logging
 
 ---
 
-# 🚀 Future Roadmap
+## 📸 Application Screenshots
 
-## Version 1.1
+- Home
+- Upload Document
+- Extraction Result
+- Processing History
+- Conversational RAG
+- Swagger API
 
-- Hybrid Search (Dense + Keyword Retrieval)
-- Metadata Filtering
-- Improved Prompt Templates
-- Better Response Validation
-- API Versioning
-- Enhanced Logging
+Add the current chat interface screenshot here:
 
----
-
-## Version 1.2
-
-- Batch PDF Processing
-- Multi-document Extraction
-- Confidence Scores
-- Export to CSV / Excel
-- Background Task Queue
-- Performance Dashboard
+```
+docs/images/chat.png
+```
 
 ---
 
-## Version 2.0
-
-- Multi-user Authentication
-- PostgreSQL Support
-- Redis Caching
-- Kubernetes Deployment
-- CI/CD Pipeline
-- Monitoring with Prometheus & Grafana
-- Cloud Deployment Options
-- OCR Support for Scanned PDFs
-- Support for Multiple Document Types
-
----
-
-# 📊 Current Capabilities
+## 📊 Current Capabilities
 
 | Feature | Status |
-|---------|--------|
-| Local AI Inference | ✅ |
+|---|---|
+| SDS PDF Processing | ✅ |
+| Metadata Extraction | ✅ |
+| Product Name Extraction | ✅ |
+| Company / Manufacturer Extraction | ✅ |
+| Language Detection | ✅ |
+| Regulatory Jurisdiction Detection | ✅ |
+| Semantic Chunking | ✅ |
+| Local Embeddings | ✅ |
+| ChromaDB Vector Storage | ✅ |
+| Section-Aware Retrieval | ✅ |
+| Hybrid Retrieval | ✅ |
+| Conversational RAG | ✅ |
+| Streaming Chat | ✅ |
+| Document Grounding | ✅ |
+| Anti-Hallucination Guardrails | ✅ |
+| Outside-World Question Rejection | ✅ |
+| Document-Scoped Retrieval | ✅ |
+| Metadata Intent Routing | ✅ |
+| Prompt Injection Protection | ✅ |
+| SQLite Persistence | ✅ |
+| Processing History | ✅ |
 | FastAPI Backend | ✅ |
 | Streamlit Frontend | ✅ |
-| RAG Pipeline | ✅ |
-| ChromaDB | ✅ |
-| SQLite Storage | ✅ |
-| Semantic Search | ✅ |
-| PDF Processing | ✅ |
+| Local Ollama Inference | ✅ |
 | Docker Support | ✅ |
-| Offline Execution | ✅ |
 
 ---
 
-# 📌 Known Limitations
+## 📌 Known Limitations
 
-Current version supports:
+Current version focuses primarily on SDS documents.
 
-- SDS documents only.
-- English and multilingual documents with language detection.
-- Single-document processing through the interface.
-- Local deployment.
+Current limitations include:
 
-Future versions will introduce broader document support, scalable processing, and enterprise deployment options.
+- SDS-focused document processing
+- Local deployment architecture
+- LLM performance depends on local hardware
+- OCR support for scanned PDFs is not currently the primary processing path
+- Retrieval quality depends on document text extraction quality
+- Very large documents may require additional retrieval optimization
+- Multilingual behavior depends on the document and local model capabilities
 
 ---
 
-# 🤝 Contributing
+## 🚀 Future Roadmap
+
+### Version 1.1
+
+- Improved retrieval evaluation
+- Advanced metadata validation
+- Better multilingual RAG support
+- Enhanced source attribution
+- Improved confidence scoring
+- API versioning
+- Expanded document analytics
+
+### Version 1.2
+
+- Batch PDF processing
+- Multi-document conversational retrieval
+- CSV / Excel export
+- Background task queue
+- Performance dashboard
+- Advanced audit reporting
+
+### Version 2.0
+
+- Multi-user authentication
+- PostgreSQL support
+- Redis caching
+- Kubernetes deployment
+- CI/CD pipeline
+- Prometheus / Grafana monitoring
+- Optional cloud deployment
+- OCR for scanned PDFs
+- Support for additional document types
+
+---
+
+## 🤝 Contributing
 
 Contributions are welcome.
 
@@ -752,72 +1055,47 @@ If you find bugs, have feature ideas, or would like to improve the platform:
 
 1. Fork the repository.
 2. Create a feature branch.
-3. Commit your changes.
-4. Open a Pull Request.
+3. Make your changes.
+4. Commit your changes.
+5. Push the branch.
+6. Open a Pull Request.
 
 ---
 
-# Performance Notes
+## 🌿 Git Development & Recovery
 
-This platform runs **100% locally** and does not rely on any cloud APIs.
+The project uses Git for version control.
 
-### Hardware Used for Verification
+A manually verified production checkpoint is maintained for safe recovery.
 
-- CPU: Intel Core i7-10810U
-- RAM: 32 GB
-- Operating System: Windows 11
-- Ollama
-- Qwen3:8B
-- nomic-embed-text
+Current verified checkpoint:
 
-### Processing Time
+- **Commit:** `03361e2`
+- **Tag:** `SDS-Metadata-guardrails-working`
+- **Branch:** `verified-guardrails`
 
-The complete SDS extraction pipeline has been verified successfully.
+This checkpoint represents the manually verified working state of the document-grounded chatbot and its guardrails.
 
-Typical pipeline stages:
-
-- PDF Extraction
-- Text Cleaning
-- Semantic Chunking
-- Embedding Generation
-- ChromaDB Storage
-- Semantic Retrieval
-- Prompt Generation
-- LLM Inference
-- Metadata Validation
-- SQLite Persistence
-
-On CPU-only systems, the LLM inference stage may take several minutes depending on:
-
-- Document size
-- Number of retrieved chunks
-- Available CPU resources
-- Ollama model performance
-
-For the verified development environment, larger SDS documents required approximately **8–10 minutes** for complete extraction using **Qwen3:8B**.
-
-This is expected behavior for a fully local LLM pipeline and does not affect extraction accuracy.
+Future development should be performed through separate commits/branches so that changes can be safely reverted if a regression occurs.
 
 ---
 
-# 📄 License
+## 📄 License
 
 This project is released under the MIT License.
 
 ---
 
-# 👨‍💻 Author
+## 👨‍💻 Author
 
 **Abhijit Kumar**
-
 AI Engineering Student
 
-GitHub:
-https://github.com/ps-abhijit-kumar
+GitHub: [https://github.com/ps-abhijit-kumar](https://github.com/ps-abhijit-kumar)
 
 ---
 
-# 🙏 Acknowledgements
+## 🙏 Acknowledgements
 
 This project leverages the excellent work of the open-source community, including:
 
@@ -825,23 +1103,20 @@ This project leverages the excellent work of the open-source community, includin
 - Streamlit
 - Ollama
 - ChromaDB
-- LangChain
 - PyMuPDF
 - SQLite
+- Qwen
+- Nomic embedding models
 
-Special thanks to the maintainers of these projects for enabling local AI application development.
+Special thanks to the maintainers and contributors of these projects for enabling local AI application development.
 
 ---
 
-# ⭐ Support
+## ⭐ Support
 
-If you found this project helpful:
+If you found this project useful:
 
-- ⭐ Star this repository
-- 🍴 Fork it
+- ⭐ Star the repository
+- 🍴 Fork the repository
 - 💡 Share feedback
 - 🤝 Contribute improvements
-
----
-
-> **AI Document Intelligence Platform** demonstrates how Retrieval-Augmented Generation (RAG), local LLMs, vector databases, and clean software architecture can be combined to build secure, scalable, and production-oriented document intelligence systems without relying on external AI services.
