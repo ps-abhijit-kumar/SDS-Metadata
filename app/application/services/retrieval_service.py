@@ -203,8 +203,18 @@ class RetrievalService:
             logger.info("RETRIEVAL QUERY | query='%s' | scope=%s | raw_results=0 | passed=0", query[:50], document_id)
             return []
 
-        # Extract query keywords for lexical scoring
+        # Extract meaningful query keywords for lexical scoring (excluding standard stop words)
         query_words = set(re.findall(r"\w{3,}", query.lower()))
+        stop_words = {
+            "what", "when", "where", "which", "who", "whom", "whose", "why", "how",
+            "the", "and", "is", "are", "was", "were", "this", "that", "these", "those",
+            "for", "with", "about", "from", "into", "during", "including", "until",
+            "against", "among", "throughout", "despite", "towards", "upon", "concerning",
+            "to", "in", "for", "on", "by", "at", "tell", "give", "can", "you", "please",
+            "should", "does", "have", "been", "listed", "mentioned", "contain", "contains",
+            "file", "document", "sds", "pdf", "product"
+        }
+        content_words = query_words - stop_words
 
         ranked_candidates: list[tuple[float, RetrievedChunk]] = []
 
@@ -232,9 +242,10 @@ class RetrievalService:
                         is_section_match = True
                         break
 
-            # Compute Lexical Keyword Overlap
-            matched_words = sum(1 for w in query_words if w in text_lower or w in chunk_title)
-            lexical_ratio = (matched_words / max(len(query_words), 1)) if query_words else 0.0
+            # Compute Lexical Keyword Overlap on substantive content words
+            matched_words = sum(1 for w in content_words if w in text_lower or w in chunk_title) if content_words else 0
+            has_lexical_match = (matched_words > 0)
+            lexical_ratio = (matched_words / len(content_words)) if content_words else 0.0
 
             # Hybrid Distance & Ranking Score
             effective_distance = score
@@ -253,13 +264,14 @@ class RetrievalService:
                 score=score,
             )
 
-            # Calibrated relevance thresholding (Allows legitimate and cross-lingual SDS queries while strictly rejecting out-of-scope/outside-world questions)
+            # Calibrated multi-signal relevance thresholding
+            # Guarantees out-of-scope / outside-world questions produce passed=0 while preserving legitimate and cross-lingual SDS queries
             is_relevant = False
             if is_section_match and score <= 1.35:
                 is_relevant = True
-            elif score <= distance_limit:
+            elif score <= 0.65:
                 is_relevant = True
-            elif hybrid_score <= 0.80 and score <= 1.30:
+            elif has_lexical_match and score <= 1.25:
                 is_relevant = True
             elif analysis.is_overview and score <= 1.30:
                 is_relevant = True
@@ -270,32 +282,34 @@ class RetrievalService:
         # Sort candidates by hybrid_score ascending (most relevant first)
         ranked_candidates.sort(key=lambda item: item[0])
 
-        # If multi-intent query, ensure balanced representation across all detected sub-intents
-        if analysis.is_multi_intent and len(analysis.sub_queries) > 1:
+        # Final candidate selection
+        effective_k = max(top_k, 5) if target_sections else top_k
+
+        if target_sections and len(target_sections) > 1:
             final_chunks: list[RetrievedChunk] = []
             selected_keys = set()
 
-            # Ensure at least 1-3 top chunks from each detected target section group
+            # Ensure top chunks from each detected target section are represented
             for target_sec in target_sections:
                 sec_matches = [
                     item[1] for item in ranked_candidates
-                    if (item[1].section == target_sec or target_sec in item[1].section_title.lower())
+                    if (str(item[1].section).strip() == str(target_sec).strip() or f"section {target_sec}" in item[1].section_title.lower())
                     and (item[1].document_id, item[1].text[:60]) not in selected_keys
                 ]
                 for sc in sec_matches[:2]:
                     selected_keys.add((sc.document_id, sc.text[:60]))
                     final_chunks.append(sc)
 
-            # Fill remaining slots up to top_k from ranked candidates
+            # Fill remaining slots up to effective_k from ranked candidates
             for item in ranked_candidates:
                 ck = (item[1].document_id, item[1].text[:60])
                 if ck not in selected_keys:
                     selected_keys.add(ck)
                     final_chunks.append(item[1])
-                if len(final_chunks) >= top_k:
+                if len(final_chunks) >= max(effective_k, len(target_sections) * 2):
                     break
         else:
-            final_chunks = [item[1] for item in ranked_candidates[:top_k]]
+            final_chunks = [item[1] for item in ranked_candidates[:effective_k]]
 
         logger.info(
             "HYBRID RETRIEVAL | query='%s' | target_sections=%s | scope=%s | raw=%d | passed=%d",

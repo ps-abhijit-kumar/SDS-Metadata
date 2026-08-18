@@ -24,38 +24,32 @@ _INTENT_PATTERNS: list[tuple[MetadataIntent, re.Pattern]] = [
     (
         MetadataIntent.LANGUAGE,
         re.compile(
-            r"\b(?:what|which|in\s+what|in\s+which|tell\s+me\s+the|identify\s+the|is\s+this\s+(?:document|sds|pdf)?\s*in)\b"
-            r".*?\b(?:language|idioma|langue|sprache|spanish|english|german|french|portuguese|italian|dutch)\b",
+            r"^\s*(?:what\s+language(?:\s+is\s+this)?|what\s+is\s+the\s+language|identify\s+the\s+language|language)\??\s*$",
             re.IGNORECASE,
         ),
     ),
     (
         MetadataIntent.LANGUAGE,
         re.compile(
-            r"\b(?:what|which|can\s+you\s+identify\s+the)\s+language\b",
+            r"\b(?:what\s+language\s+is\s+(?:this|the)\s+(?:document|sds|file|pdf)\s+(?:written\s+in|in)|"
+            r"what\s+is\s+the\s+language\s+of\s+(?:this|the)\s+(?:document|sds|file|pdf)|"
+            r"in\s+what\s+language\s+is\s+(?:this|the)\s+(?:document|sds|file|pdf)\s+written)\b",
             re.IGNORECASE,
         ),
     ),
-    (
-        MetadataIntent.LANGUAGE,
-        re.compile(
-            r"\bwhat\s+language\s+is\s+(?:this|the)\s+(?:document|sds|file|pdf)\s+(?:written|in)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Product Name intent (Excludes questions asking about chemical composition, ingredients, or multi-part questions)
+    # Product Name intent
     (
         MetadataIntent.PRODUCT_NAME,
         re.compile(
-            r"\b(?:what\s+(?:is|called)|identify|tell\s+me)\b(?![^?]*\b(?:chemical|composition|ingredient|hazard|effect|first\s*aid|protection|storage|handling)\b)"
-            r".*?\b(?:product\s+name|trade\s+name|commercial\s+name|product\s+called|this\s+product|product\s+is\s+this)\b",
+            r"^\s*(?:what\s+(?:is\s+the\s+)?product(?:\s+name)?|what\s+product\s+is\s+this|what\s+is\s+this\s+product(?:\s+called)?|product\s+name|trade\s+name|commercial\s+name)\??\s*$",
             re.IGNORECASE,
         ),
     ),
     (
         MetadataIntent.PRODUCT_NAME,
         re.compile(
-            r"^\s*what\s+(?:product\s+is\s+this|(?:is\s+the\s+)?product(?:\s+name|\s+is\s+this|\s+called)?)\??\s*$",
+            r"\b(?:what\s+is\s+the\s+(?:product\s+name|trade\s+name|commercial\s+name)|"
+            r"what\s+is\s+this\s+product\s+called|tell\s+me\s+the\s+product\s+name)\b",
             re.IGNORECASE,
         ),
     ),
@@ -63,14 +57,17 @@ _INTENT_PATTERNS: list[tuple[MetadataIntent, re.Pattern]] = [
     (
         MetadataIntent.COMPANY_NAME,
         re.compile(
-            r"\b(?:who|what|which\s+company|identify)\b.*?\b(?:manufactur\w*|suppli\w*|company|produc(?:er|ers|es|ed|ing)|makes?|made|responsible)\b",
+            r"^\s*(?:what\s+(?:is\s+the\s+)?company(?:\s+name)?|what\s+is\s+company|who\s+(?:is\s+the\s+)?(?:manufacturer|supplier|producer|company)|"
+            r"who\s+(?:manufactures?|makes?|produces?)\s+(?:this|the)(?:\s+product)?|who\s+makes\s+this|manufacturer(?:\s+name)?|supplier(?:\s+name)?|company\s+name)\??\s*$",
             re.IGNORECASE,
         ),
     ),
     (
         MetadataIntent.COMPANY_NAME,
         re.compile(
-            r"\b(?:manufacturer|supplier|producer|company\s+name|manufacturer\s+name|who\s+makes\s+this)\b",
+            r"\b(?:who\s+(?:is\s+the\s+)?(?:manufacturer|supplier|producer|company)|"
+            r"who\s+(?:manufactures?|makes?|produces?)\s+(?:this|the)\s+(?:product|chemical|sds)|"
+            r"what\s+is\s+the\s+(?:manufacturer|supplier|producer|company)\s+name)\b",
             re.IGNORECASE,
         ),
     ),
@@ -78,14 +75,15 @@ _INTENT_PATTERNS: list[tuple[MetadataIntent, re.Pattern]] = [
     (
         MetadataIntent.JURISDICTION,
         re.compile(
-            r"\b(?:what|which|is\s+this\s+under)\b.*?\b(?:jurisdiction|regulatory|framework|reach|clp|osha|whmis|regulation|regulations)\b",
+            r"^\s*(?:what\s+is\s+the\s+jurisdiction|what\s+jurisdiction|what\s+regulations?\s+does\s+this\s+(?:document|sds|file|pdf)\s+follow|jurisdiction)\??\s*$",
             re.IGNORECASE,
         ),
     ),
     (
         MetadataIntent.JURISDICTION,
         re.compile(
-            r"^\s*what\s+(?:regulations\s+does\s+this\s+document\s+follow|(?:is\s+the\s+)?jurisdiction)\??\s*$",
+            r"\b(?:what\s+(?:regulatory\s+framework|jurisdiction|regulation)\s+does\s+(?:this|the)\s+(?:sds|document|file|pdf)\s+follow|"
+            r"what\s+is\s+the\s+regulatory\s+jurisdiction)\b",
             re.IGNORECASE,
         ),
     ),
@@ -100,7 +98,15 @@ class IntentRouter:
         q = question.strip()
         q_lower = q.lower()
 
-        # Guard against composition/ingredient or multi-intent RAG questions being misclassified as a single metadata field
+        # Pre-guard 1: Language definition/meaning questions (e.g. "what is the meaning of the word company")
+        if re.search(r"\b(?:meaning\s+of|definition\s+of|define|what\s+does\s+(?:\w+\s+)?mean|explain\s+the\s+word|what\s+is\s+the\s+meaning)\b", q_lower):
+            return MetadataIntent.NONE
+
+        # Pre-guard 2: Personal identity / out-of-bounds user questions (e.g. "what is my name")
+        if re.search(r"\b(?:my\s+name|who\s+am\s+i|your\s+name|who\s+are\s+you)\b", q_lower):
+            return MetadataIntent.NONE
+
+        # Pre-guard 3: Guard against composition/ingredient or multi-intent RAG questions being misclassified as metadata
         rag_topic_count = sum(
             1 for kw in [
                 "hazard", "risk", "first aid", "exposure", "storage", "handling",
@@ -108,14 +114,17 @@ class IntentRouter:
             ] if kw in q_lower
         )
         if rag_topic_count >= 1 and any(meta_kw in q_lower for meta_kw in ["product", "manufacturer", "company", "who makes"]):
-            # Multi-part question combining metadata + RAG content -> defer to full RAG execution
             return MetadataIntent.NONE
 
         if re.search(r"\b(?:chemical|composition|ingredient|component|element|substance|formula)\b", q, re.IGNORECASE):
             return MetadataIntent.NONE
 
-        # If question contains multiple distinct commas / 'and' joining multiple fields, defer to RAG
+        # Pre-guard 4: If question contains multiple distinct clauses / 'and' joining multiple fields, defer to RAG
         if q_lower.count(",") >= 2 or (" and " in q_lower and q_lower.count("what") + q_lower.count("who") > 1):
+            return MetadataIntent.NONE
+
+        # Pre-guard 5: Noisy queries with excessive non-question tokens (e.g. "company name abhijeet bhai what is this")
+        if len(q.split()) > 7 and not any(q_lower.startswith(p) for p in ["what is the", "who is the", "which company", "what language", "what product", "what jurisdiction", "what are the regulations", "tell me the"]):
             return MetadataIntent.NONE
 
         for intent, pattern in _INTENT_PATTERNS:

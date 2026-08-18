@@ -184,11 +184,12 @@ class ChatWithDocumentUseCase:
         # ── 4. LLM Generation for Grounded RAG ─────────────────────────────
         prompt_start = time.time()
         sys_prompt, user_prompt = self._chat.build_prompt(
-            user_query,
-            chunks,
+            question=user_query,
+            chunks=chunks,
             is_multi_doc=is_multi_doc,
             doc_metadata=doc_meta if analysis.is_overview else None,
             is_overview=analysis.is_overview,
+            document_id=document_id,
         )
         prompt_build_ms = (time.time() - prompt_start) * 1000
 
@@ -334,11 +335,12 @@ class ChatWithDocumentUseCase:
 
         # ── 3. Streaming Grounded RAG ───────────────────────────────────────
         sys_prompt, user_prompt = self._chat.build_prompt(
-            user_query,
-            chunks,
+            question=user_query,
+            chunks=chunks,
             is_multi_doc=is_multi_doc,
             doc_metadata=doc_meta if analysis.is_overview else None,
             is_overview=analysis.is_overview,
+            document_id=document_id,
         )
         sources = self._chat.extract_sources(
             chunks,

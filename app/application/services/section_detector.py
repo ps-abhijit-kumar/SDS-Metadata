@@ -9,22 +9,26 @@ logger = logging.getLogger(__name__)
 
 # Multilingual keywords & regex patterns for standard GHS Sections 1-16
 _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
-    # Section 1: Identification
+    # Section 1: Identification of the substance/mixture and of the company/undertaking
     (
         "1",
         re.compile(
-            r"\b(?:product\s+identification|product\s+name|trade\s+name|commercial\s+name|manufacturer|supplier|"
-            r"company\s+name|producer|distributor|emergency\s+telephone|intended\s+use|identificación\s+del\s+producto|"
-            r"identificação\s+do\s+produto|identificação\s+da\s+empresa)\b",
+            r"\b(?:product\s+identifier|chemical\s+identification|substance\s+identification|product\s+identification|"
+            r"emergency\s+telephone|emergency\s+contact|intended\s+use|uses\s+advised\s+against|"
+            r"identificación\s+del\s+producto|identificação\s+do\s+produto|identificação\s+da\s+empresa|"
+            r"section\s+1\b|secci[oó]n\s+1\b|sec[cç][aã]o\s+1\b)\b",
             re.IGNORECASE,
         ),
     ),
-    # Section 2: Hazard Identification
+    # Section 2: Hazard Identification & Precautionary Statements
     (
         "2",
         re.compile(
             r"\b(?:hazard|hazards|danger|warning|hazard\s+statements|identificación\s+de\s+los\s+peligros|"
-            r"peligros|peligrosidad|risks|risk\s+phrases|pictogram|ghs\s+classification|classificação\s+de\s+perigo)\b",
+            r"peligros|peligrosidad|risks|risk\s+phrases|pictogram|ghs\s+classification|classificação\s+de\s+perigo|"
+            r"precaution|precautions|precautionary|precautionary\s+statements|p-phrases|p\s+phrases|"
+            r"frases\s+de\s+precauci[oó]n|recomenda[cç][oõó]es\s+de\s+prud[eê]ncia|cuidados\s+de\s+seguran[cç]a|"
+            r"hazard\s+precautions|safety\s+precautions|statement\s+of\s+hazard)\b",
             re.IGNORECASE,
         ),
     ),
@@ -72,7 +76,9 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         "7",
         re.compile(
             r"\b(?:handling|storage|how\s+should\s+it\s+be\s+stored|manipulación|almacenamiento|almacenar|guardar|"
-            r"safe\s+handling|storage\s+conditions|incompatibilities|conditions\s+for\s+safe\s+storage|manuseio)\b",
+            r"safe\s+handling|storage\s+conditions|incompatibilities|conditions\s+for\s+safe\s+storage|manuseio|"
+            r"armazenamento|storage\s+precautions|handling\s+precautions|precau[cç][oõó]es\s+de\s+manuseio|"
+            r"precau[cç][oõó]es\s+de\s+armazenamento|condi[cç][oõó]es\s+de\s+armazenamento)\b",
             re.IGNORECASE,
         ),
     ),
@@ -81,9 +87,10 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         "8",
         re.compile(
             r"\b(?:exposure\s+controls?|ppe|protective\s+equipment|personal\s+protection|controles\s+de\s+exposición|"
-            r"protección\s+personal|equipo\s+de\s+protección|mascarilla|guantes|protect|protection|protect\s+myself|"
-            r"protective|respiratory\s+protection|gloves|safety\s+goggles|safety\s+glasses|impervious\s+clothing|"
-            r"ventilation|occupational\s+exposure|exposure\s+limit|threshold\s+limit)\b",
+            r"controles\s+de\s+exposi[cç][aã]o|protección\s+personal|equipo\s+de\s+protección|mascarilla|guantes|protect|"
+            r"protection|protect\s+myself|protective|respiratory\s+protection|gloves|safety\s+goggles|safety\s+glasses|"
+            r"impervious\s+clothing|ventilation|occupational\s+exposure|exposure\s+limit|threshold\s+limit|"
+            r"personal\s+precautions|protective\s+precautions)\b",
             re.IGNORECASE,
         ),
     ),
@@ -150,11 +157,13 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
             re.IGNORECASE,
         ),
     ),
-    # Section 16: Other Information
+    # Section 16: Other Information (Abbreviations, Full forms, Revision Date)
     (
         "16",
         re.compile(
-            r"\b(?:other\s+information|revision\s+date|abbreviations|disclaimer|otra\s+información)\b",
+            r"\b(?:other\s+information|revision\s+date|abbreviations?|disclaimer|otra\s+información|outras\s+informa[cç][oõó]es|"
+            r"full\s+form|full\s+name|sigla|siglas|abreviatura|abreviaturas|acronym|acronyms|sds\s+stands\s+for|"
+            r"what\s+does\s+sds\s+mean|ficha\s+de\s+dados\s+de\s+seguran[cç]a)\b",
             re.IGNORECASE,
         ),
     ),
@@ -162,13 +171,14 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
 
 # Generic intent patterns that map to multiple contiguous SDS sections
 _MULTI_SECTION_INTENTS: list[tuple[list[str], re.Pattern]] = [
-    # Broad "Safety Measures" -> Sections 4 (First Aid), 5 (Fire), 6 (Spill/Accidental Release), 7 (Handling/Storage), 8 (Exposure/PPE)
+    # Broad "Safety Measures / Precautions" -> Sections 2 (Hazard Precautions), 4 (First Aid), 7 (Handling/Storage), 8 (Exposure/PPE)
     (
-        ["4", "5", "6", "7", "8"],
+        ["2", "4", "7", "8"],
         re.compile(
-            r"\b(?:safety\s+measures?|safety\s+precautions?|safety\s+guidelines?|safety\s+instructions?|"
-            r"safety\s+information|general\s+safety|medidas\s+de\s+seguridad|medidas\s+de\s+protecci[oó]n|"
-            r"precau[cç][oõó]es\s+de\s+seguran[cç]a|how\s+to\s+handle\s+safely|precautionary\s+measures)\b",
+            r"\b(?:precautions?|precautionary(?:\s+statements?)?|safety\s+precautions?|safety\s+measures?|"
+            r"safety\s+guidelines?|safety\s+instructions?|safety\s+information|general\s+safety|"
+            r"medidas\s+de\s+seguridad|medidas\s+de\s+protecci[oó]n|precau[cç][oõó]es(?:\s+de\s+seguran[cç]a)?|"
+            r"recomenda[cç][oõó]es\s+de\s+prud[eê]ncia|how\s+to\s+handle\s+safely|precautionary\s+measures)\b",
             re.IGNORECASE,
         ),
     ),
@@ -203,10 +213,27 @@ class SectionDetector:
     def detect_sections(self, query: str) -> list[str]:
         """Return ALL matching SDS section number strings for a query in order."""
         q = query.strip()
+        q_lower = q.lower()
+
+        # Pre-guard 1: Conversational noise / banter words (e.g. "company name abhijeet bhai what is this")
+        if re.search(r"\b(?:bhai|bro|dude|abhijeet|abhijit|random|lol|wtf|haha)\b", q_lower):
+            logger.info("SECTION DETECTOR | Ignored noisy query='%s'", q[:50])
+            return []
+
+        # Pre-guard 2: Non-SDS outside-world / personal identity queries
+        if re.search(r"\b(?:meaning\s+of\s+the\s+word|definition\s+of\s+the\s+word|my\s+name|who\s+am\s+i|fifa|world\s+cup|capital\s+of)\b", q_lower):
+            logger.info("SECTION DETECTOR | Ignored non-SDS query='%s'", q[:50])
+            return []
+
+        # Pre-guard 3: Unstructured noisy phrases with 'what is this' attached to random words
+        if "what is this" in q_lower and len(q.split()) > 4 and not any(k in q_lower for k in ["product", "document", "sds", "chemical", "substance"]):
+            logger.info("SECTION DETECTOR | Ignored unstructured query='%s'", q[:50])
+            return []
+
         matched: list[str] = []
         seen: set[str] = set()
 
-        # 1. Check multi-section compound intents first (e.g. "safety measures" -> 4, 5, 6, 7, 8)
+        # 1. Check multi-section compound intents first (e.g. "precautions", "safety measures" -> 2, 4, 7, 8)
         for sec_list, pattern in _MULTI_SECTION_INTENTS:
             if pattern.search(q):
                 for s in sec_list:

@@ -78,19 +78,19 @@ class GroundingService:
                 has_lexical_evidence = True
 
         # Evidence verification:
-        # 1. Best score is within calibrated semantic distance threshold
-        if best_score <= distance_threshold:
-            logger.info("Grounding verified: Strong semantic match (score=%.3f <= %.3f)", best_score, distance_threshold)
+        # 1. High-confidence pure semantic match
+        if best_score <= 0.65:
+            logger.info("Grounding verified: High-confidence semantic match (score=%.3f <= 0.65)", best_score)
             return True, ""
 
         # 2. Section match with valid score
         if has_section_match and best_score <= 1.35:
-            logger.info("Grounding verified: Section match with valid score (score=%.3f)", best_score)
+            logger.info("Grounding verified: Section match with valid score (score=%.3f <= 1.35)", best_score)
             return True, ""
 
-        # 3. Lexical evidence present with moderate semantic distance
-        if has_lexical_evidence and best_score <= 1.30:
-            logger.info("Grounding verified: Semantic match with lexical evidence (score=%.3f)", best_score)
+        # 3. Lexical evidence present with valid semantic distance
+        if has_lexical_evidence and best_score <= 1.25:
+            logger.info("Grounding verified: Semantic match with lexical evidence (score=%.3f <= 1.25)", best_score)
             return True, ""
 
         logger.info(
